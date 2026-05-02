@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0e0e">
+<title>Isha Gold — Cash Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --gold: #b8860b; --gold-light: #f5e07a; --gold-dark: #7a5c00;
+    --bg: #0e0e0e; --surface: #1a1a1a; --surface2: #242424; --surface3: #2e2e2e;
+    --border: rgba(184,134,11,0.25); --text: #f0ead6; --text2: #b0a070; --text3: #6a5a30;
+    --green: #4caf7a; --red: #e05050;
+    --font: 'Georgia', serif; --mono: 'Courier New', monospace;
+    --tab-h: 60px;
+    --header-h: 54px;
+    --bar-h: 32px;
+  }
+
+  html, body {
+    height: 100%; background: var(--bg); color: var(--text);
+    font-family: var(--font); overflow: hidden;
+  }
+
+  /* ── SPIRITUAL BAR ── */
+  .spiritual-bar {
+    background: linear-gradient(90deg,#1a0e00,#2a1800,#1a0e00);
+    border-bottom: 1px solid rgba(184,134,11,0.4);
+    height: var(--bar-h);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 10px; color: var(--gold-light); letter-spacing: 1px; font-style: italic;
+    overflow: hidden; white-space: nowrap;
+  }
+  .diya { font-size: 14px; animation: flicker 2.5s ease-in-out infinite alternate; flex-shrink: 0; }
+  .spiritual-text { overflow: hidden; text-overflow: ellipsis; }
+  @keyframes flicker {
+    0%   { opacity: 0.7; text-shadow: 0 0 4px #ffaa00; }
+    50%  { opacity: 1;   text-shadow: 0 0 10px #ffcc44, 0 0 20px #ff8800; }
+    100% { opacity: 0.85; text-shadow: 0 0 6px #ffaa00; }
+  }
+
+  /* ── HEADER ── */
+  header {
+    height: var(--header-h);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; background: var(--surface); flex-shrink: 0;
+  }
+  header h1 { font-size: 13px; color: var(--gold-light); letter-spacing: 1.5px; text-transform: uppercase; font-weight: normal; }
+  .hdr-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+  .hdr-date  { font-size: 9px; color: var(--text2); font-family: var(--mono); }
+  .hdr-time  { font-size: 13px; color: var(--gold-light); font-family: var(--mono); letter-spacing: 1px; }
+
+  /* ── TAB BAR ── */
+  .tab-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: var(--tab-h);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex; z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    font-family: var(--mono); color: var(--text3); background: none; border: none;
+    cursor: pointer; transition: color 0.2s; padding: 6px 4px; position: relative;
+  }
+  .tab-btn .tab-icon { font-size: 18px; }
+  .tab-btn.active { color: var(--gold-light); }
+  .tab-btn.active::before {
+    content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 2px;
+    background: var(--gold); border-radius: 0 0 2px 2px;
+  }
+
+  /* ── PAGES ── */
+  .app-wrap {
+    position: fixed;
+    top: calc(var(--bar-h) + var(--header-h));
+    left: 0; right: 0;
+    bottom: var(--tab-h);
+    overflow: hidden;
+  }
+  .page { position: absolute; inset: 0; overflow-y: auto; display: none; -webkit-overflow-scrolling: touch; }
+  .page.active { display: block; }
+
+  /* ── PAGE: BALANCES ── */
+  .balances-page { padding: 14px; }
+  .locations { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .loc-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; transition: border-color 0.2s;
+  }
+  .loc-card.highlight { border-color: var(--gold); background: #1e1a08; }
+  .loc-card .loc-tag    { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; font-family: var(--mono); }
+  .loc-card .loc-name   { font-size: 18px; color: var(--gold-light); font-weight: bold; margin-bottom: 8px; }
+  .loc-card .loc-amount { font-size: 16px; color: var(--text); font-family: var(--mono); font-weight: bold; }
+  .loc-card.highlight .loc-amount { color: var(--gold-light); }
+  .loc-card .loc-sub    { font-size: 9px; color: var(--text3); margin-top: 3px; font-family: var(--mono); }
+
+  .total-bar {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .total-bar span   { font-size: 10px; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; font-family: var(--mono); }
+  .total-bar strong { font-size: 22px; color: var(--gold-light); font-family: var(--mono); }
+
+  /* ── PAGE: TRANSACTIONS ── */
+  .txn-page { padding: 12px 12px 20px; }
+  .section-title { font-size: 9px; letter-spacing: 2.5px; color: var(--text3); text-transform: uppercase; margin-bottom: 8px; font-family: var(--mono); }
+
+  .amount-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+  .amt-label  { font-size: 20px; color: var(--gold); font-family: var(--mono); flex-shrink: 0; }
+  .amt-input  {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; font-size: 22px;
+    color: var(--gold-light); font-family: var(--mono); outline: none;
+    width: 100%; -webkit-appearance: none;
+  }
+  .amt-input:focus { border-color: var(--gold); }
+  .amt-input::placeholder { color: var(--text3); font-size: 13px; }
+
+  .quick-hint { font-size: 9px; color: var(--text3); font-family: var(--mono); margin-bottom: 6px; }
+  .quick-amounts { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .qa-btn {
+    background: var(--surface3); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 12px; color: var(--text2); font-family: var(--mono);
+    cursor: pointer; transition: all 0.15s; font-weight: bold; min-width: 44px; text-align: center;
+  }
+  .qa-btn:active { transform: scale(0.94); }
+  .qa-btn.qa-active { border-color: var(--gold); background: #1e1a08; color: var(--gold-light); }
+
+  .warn-banner {
+    background: #2a1a00; border: 1px solid #7a4400; border-radius: 6px;
+    padding: 8px 12px; font-size: 11px; color: #d08030; font-family: var(--mono);
+    margin-bottom: 10px; display: none;
+  }
+  .warn-banner.visible { display: block; }
+
+  .txn-groups { display: flex; flex-direction: column; gap: 12px; }
+  .txn-group-label { font-size: 9px; letter-spacing: 1.5px; color: var(--gold-dark); text-transform: uppercase; margin-bottom: 7px; font-family: var(--mono); border-left: 2px solid var(--gold-dark); padding-left: 8px; }
+  .txn-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .txn-btn {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 10px; cursor: pointer; text-align: left; transition: all 0.15s;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .txn-btn:active { transform: scale(0.97); border-color: var(--gold); background: #1e1a08; }
+  .txn-btn .btn-icon  { font-size: 14px; margin-bottom: 2px; }
+  .txn-btn .btn-title { font-size: 11px; font-weight: bold; line-height: 1.3; color: var(--text); }
+  .txn-btn .btn-desc  { font-size: 9px; color: var(--text3); line-height: 1.4; font-family: var(--mono); }
+  .txn-btn.in  .btn-title { color: var(--green); }
+  .txn-btn.out .btn-title { color: var(--red); }
+  .txn-btn.move .btn-title { color: var(--gold-light); }
+
+  /* ── PAGE: LOG ── */
+  .log-page { padding: 0; }
+  .log-header {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--surface); position: sticky; top: 0; z-index: 5;
+  }
+  .log-header h2 { font-size: 10px; letter-spacing: 2px; color: var(--text2); text-transform: uppercase; font-weight: normal; font-family: var(--mono); }
+  .log-btns { display: flex; gap: 6px; }
+  .log-header button {
+    font-size: 10px; color: var(--text3); background: none; border: 1px solid var(--text3);
+    border-radius: 4px; padding: 5px 10px; cursor: pointer; font-family: var(--mono); transition: all 0.15s;
+  }
+  .log-header button:active { color: var(--gold-light); border-color: var(--gold); }
+  .log-header .btn-clear:active { color: var(--red); border-color: var(--red); }
+  .log-list { padding-bottom: 10px; }
+  .log-entry { border-bottom: 1px solid rgba(184,134,11,0.08); padding: 10px 14px; }
+  .log-entry .log-time      { font-size: 9px; color: var(--text3); font-family: var(--mono); margin-bottom: 3px; }
+  .log-entry .log-direction { font-size: 10px; font-weight: bold; font-family: var(--mono); margin-bottom: 2px; }
+  .log-entry .log-type      { font-size: 10px; color: var(--text2); margin-bottom: 2px; }
+  .log-entry .log-amount    { font-size: 17px; font-family: var(--mono); font-weight: bold; }
+  .log-entry .log-route     { font-size: 9px; color: var(--text3); font-family: var(--mono); margin-top: 3px; }
+  .log-entry .log-note      { font-size: 9px; color: var(--gold); font-family: var(--mono); margin-top: 2px; }
+  .log-entry .log-balances  { font-size: 8px; color: var(--text3); font-family: var(--mono); margin-top: 5px; background: rgba(184,134,11,0.05); padding: 4px 6px; border-radius: 4px; line-height: 1.9; }
+  .dir-in   { color: var(--green); }
+  .dir-out  { color: var(--red); }
+  .dir-move { color: var(--gold-light); }
+  .amt-in   { color: var(--green); }
+  .amt-out  { color: var(--red); }
+  .amt-move { color: var(--gold-light); }
+  .empty-log { padding: 50px 20px; text-align: center; color: var(--text3); font-size: 12px; font-family: var(--mono); line-height: 2; }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+    z-index: 100; align-items: flex-end; justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--gold);
+    border-radius: 18px 18px 0 0; padding: 22px 22px 28px;
+    width: 100%; max-width: 480px;
+  }
+  .modal-drag { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .modal h3 { font-size: 14px; color: var(--gold-light); margin-bottom: 6px; }
+  .modal p  { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.6; white-space: pre-line; }
+  .modal .modal-amount { font-size: 30px; font-family: var(--mono); color: var(--gold-light); margin: 8px 0; }
+  .modal-buttons { display: flex; gap: 10px; }
+  .modal-buttons button { flex: 1; padding: 14px 16px; border-radius: 8px; font-size: 15px; cursor: pointer; border: 1px solid; font-family: var(--font); transition: all 0.15s; }
+  .btn-cancel  { background: none; border-color: var(--text3); color: var(--text2); }
+  .btn-confirm { background: var(--gold-dark); border-color: var(--gold); color: var(--gold-light); }
+  .btn-confirm:active { background: var(--gold); color: #000; }
+  .note-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; font-size: 14px; color: var(--text); font-family: var(--font);
+    outline: none; resize: none; margin-bottom: 14px; height: 52px; -webkit-appearance: none;
+  }
+  .note-input:focus { border-color: var(--gold); }
+
+  /* ── BLESSING MODAL ── */
+  .blessing-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .blessing-overlay.active { display: flex; }
+  .blessing-box {
+    background: linear-gradient(135deg,#1a1000,#2a1c00,#1a1000);
+    border: 2px solid var(--gold); border-radius: 18px; padding: 30px 24px;
+    text-align: center; width: 100%; max-width: 380px;
+    box-shadow: 0 0 50px rgba(184,134,11,0.35);
+  }
+  .blessing-diyas { font-size: 28px; margin-bottom: 8px; animation: flicker 2s ease-in-out infinite alternate; letter-spacing: 10px; }
+  .blessing-date  { font-size: 11px; color: var(--text2); font-family: var(--mono); margin-bottom: 16px; }
+  .blessing-main  { font-size: 20px; color: var(--gold-light); letter-spacing: 1.5px; line-height: 1.5; font-style: italic; }
+  .blessing-divider { color: var(--gold-dark); margin: 12px 0 8px; font-size: 12px; }
+  .blessing-names { font-size: 13px; color: var(--text2); line-height: 2.1; margin-bottom: 20px; }
+  .blessing-btn {
+    background: var(--gold-dark); border: 1px solid var(--gold); color: var(--gold-light);
+    padding: 13px 30px; border-radius: 8px; font-size: 15px; cursor: pointer;
+    font-family: var(--font); letter-spacing: 1px; transition: all 0.2s; width: 100%;
+  }
+  .blessing-btn:active { background: var(--gold); color: #000; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--text3); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- BLESSING MODAL -->
+<div class="blessing-overlay active" id="blessing-overlay">
+  <div class="blessing-box">
+    <div class="blessing-diyas">&#x1F54A; &#x1F54A; &#x1F54A;</div>
+    <div class="blessing-date" id="blessing-date"></div>
+    <div class="blessing-main">Bhagwan Ki Kripa Rahegi</div>
+    <div class="blessing-main" style="font-size:15px; margin-top:4px;">aur Meherbani Badhti Rahegi</div>
+    <div class="blessing-divider">~ ~ ~</div>
+    <div class="blessing-names">
+      Jai Shree Ram Ji<br>
+      Jai Mata Di<br>
+      Jai Surinder Sai Ji Maharaj Ji Ki Jai
+    </div>
+    <button class="blessing-btn" onclick="closeBlessingModal()">Shuru Karen &mdash; Start Day</button>
+  </div>
+</div>
+
+<!-- SPIRITUAL BAR -->
+<div class="spiritual-bar">
+  <span class="diya">&#x1FA94;</span>
+  <span class="spiritual-text">&#10022; JAI SHREE RAM JI &nbsp;&#10022;&nbsp; JAI MATA DI &nbsp;&#10022;&nbsp; JAI SURINDER SAI JI MAHARAJ JI KI JAI &#10022;</span>
+  <span class="diya">&#x1FA94;</span>
+</div>
+
+<!-- HEADER -->
+<header>
+  <h1>&#9830; Isha Gold &mdash; Cash Tracker</h1>
+  <div class="hdr-right">
+    <span class="hdr-time" id="hdr-time"></span>
+    <span class="hdr-date" id="hdr-date"></span>
+  </div>
+</header>
+
+<!-- PAGES WRAPPER -->
+<div class="app-wrap">
+
+  <!-- PAGE 1: BALANCES -->
+  <div class="page active" id="page-balances">
+    <div class="balances-page">
+      <div class="section-title" style="margin-bottom:10px;">Current Balances</div>
+      <div class="locations">
+        <div class="loc-card" id="card-dukan">
+          <div class="loc-tag">Main Shop</div>
+          <div class="loc-name">Dukan</div>
+          <div class="loc-amount" id="bal-dukan">&#8377;0</div>
+          <div class="loc-sub"    id="sub-dukan">Empty</div>
+        </div>
+        <div class="loc-card" id="card-upar">
+          <div class="loc-tag">3rd Floor</div>
+          <div class="loc-name">Upar</div>
+          <div class="loc-amount" id="bal-upar">&#8377;0</div>
+          <div class="loc-sub"   id="sub-upar">Empty</div>
+        </div>
+        <div class="loc-card" id="card-pammi">
+          <div class="loc-tag">Transit</div>
+          <div class="loc-name">Pammi Chowk</div>
+          <div class="loc-amount" id="bal-pammi">&#8377;0</div>
+          <div class="loc-sub"   id="sub-pammi">Empty</div>
+        </div>
+        <div class="loc-card" id="card-ghar">
+          <div class="loc-tag">Home Safe</div>
+          <div class="loc-name">Ghar</div>
+          <div class="loc-amount" id="bal-ghar">&#8377;0</div>
+          <div class="loc-sub"   id="sub-ghar">Empty</div>
+        </div>
+      </div>
+      <div class="total-bar">
+        <span>Total Cash in System</span>
+        <strong id="total-bal">&#8377;0</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: TRANSACTIONS -->
+  <div class="page" id="page-txn">
+    <div class="txn-page">
+      <div class="section-title">Rakam Daalo &mdash; Enter Amount</div>
+      <div class="warn-banner" id="warn-banner">&#9888; Warning: Balance at source is lower than entered amount. Please verify!</div>
+      <div class="amount-row">
+        <span class="amt-label">&#8377;</span>
+        <input type="number" inputmode="numeric" pattern="[0-9]*" class="amt-input" id="amt-input" placeholder="e.g. 1525000" min="0" step="1000" oninput="onAmtChange()">
+      </div>
+      <div class="quick-hint">Quick buttons &mdash; tap once to add, tap again to double:</div>
+      <div class="quick-amounts">
+        <button class="qa-btn" data-val="25000"   onclick="quickAdd(this)">25k</button>
+        <button class="qa-btn" data-val="50000"   onclick="quickAdd(this)">50k</button>
+        <button class="qa-btn" data-val="75000"   onclick="quickAdd(this)">75k</button>
+        <button class="qa-btn" data-val="100000"  onclick="quickAdd(this)">1L</button>
+        <button class="qa-btn" data-val="250000"  onclick="quickAdd(this)">2.5L</button>
+        <button class="qa-btn" data-val="500000"  onclick="quickAdd(this)">5L</button>
+        <button class="qa-btn" data-val="1000000" onclick="quickAdd(this)">10L</button>
+        <button class="qa-btn" data-val="1500000" onclick="quickAdd(this)">15L</button>
+        <button class="qa-btn" data-val="2000000" onclick="quickAdd(this)">20L</button>
+        <button class="qa-btn" data-val="2500000" onclick="quickAdd(this)">25L</button>
+        <button class="qa-btn" data-val="5000000" onclick="quickAdd(this)">50L</button>
+      </div>
+
+      <div class="section-title" style="margin-bottom:10px;">Transaction Type &mdash; Kaisi Movement Hai?</div>
+      <div class="txn-groups">
+
+        <div class="txn-group">
+          <div class="txn-group-label">Customer se Paisa Aaya &mdash; Cash IN</div>
+          <div class="txn-buttons">
+            <button class="txn-btn in" onclick="openModal('customer_cash_in')">
+              <span class="btn-icon">&#8599;</span>
+              <span class="btn-title">Customer ne bada amount diya</span>
+              <span class="btn-desc">Round lakhs Upar, baaki change Dukan.</span>
+            </button>
+            <button class="txn-btn in" onclick="openModal('customer_cash_in_direct')">
+              <span class="btn-icon">&#8599;</span>
+              <span class="btn-title">Chota payment &mdash; seedha Dukan</span>
+              <span class="btn-desc">Poora amount Dukan mein hi rahega.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Customer ko Paisa Diya &mdash; Cash OUT</div>
+          <div class="txn-buttons">
+            <button class="txn-btn out" onclick="openModal('cash_out_to_customer')">
+              <span class="btn-icon">&#8600;</span>
+              <span class="btn-title">Customer ko diya &mdash; Dukan se</span>
+              <span class="btn-desc">Dukan se customer ko cash payment.</span>
+            </button>
+            <button class="txn-btn out" onclick="openModal('cash_out_dukan')">
+              <span class="btn-icon">&#8600;</span>
+              <span class="btn-title">Kharcha / Payment &mdash; Dukan se</span>
+              <span class="btn-desc">Supplier, expense etc. Dukan se gaya.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Dukan aur Upar ke beech &mdash; Move Karo</div>
+          <div class="txn-buttons">
+            <button class="txn-btn move" onclick="openModal('dukan_to_upar')">
+              <span class="btn-icon">&#8593;</span>
+              <span class="btn-title">Dukan &#x2192; Upar bheja</span>
+              <span class="btn-desc">Round figure banana tha ya safe rakhna tha.</span>
+            </button>
+            <button class="txn-btn move" onclick="openModal('upar_to_dukan')">
+              <span class="btn-icon">&#8595;</span>
+              <span class="btn-title">Upar se Dukan bulaya</span>
+              <span class="btn-desc">Neeche zaroorat thi, upar se maangaya.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Upar se Pammi Chowk &mdash; 50L ho gaya</div>
+          <div class="txn-buttons">
+            <button class="txn-btn move" onclick="openModal('upar_to_pammi')">
+              <span class="btn-icon">&#x2192;</span>
+              <span class="btn-title">Upar &#x2192; Pammi Chowk</span>
+              <span class="btn-desc">50L ya multiple Upar mein. Ab Pammi Chowk.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Pammi Chowk &mdash; Movements</div>
+          <div class="txn-buttons">
+            <button class="txn-btn move" onclick="openModal('pammi_to_dukan')">
+              <span class="btn-icon">&#8599;</span>
+              <span class="btn-title">Pammi Chowk &#x2192; Dukan</span>
+              <span class="btn-desc">Dukan mein bada cash chahiye tha.</span>
+            </button>
+            <button class="txn-btn move" onclick="openModal('pammi_to_ghar')">
+              <span class="btn-icon">&#x2192;</span>
+              <span class="btn-title">Pammi Chowk &#x2192; Ghar</span>
+              <span class="btn-desc">Din ke ant mein &mdash; paisa ghar gaya.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Din Khatam &mdash; Ghar Bhejna</div>
+          <div class="txn-buttons">
+            <button class="txn-btn move" onclick="openModal('upar_to_ghar')">
+              <span class="btn-icon">&#x2192;</span>
+              <span class="btn-title">Upar &#x2192; Ghar</span>
+              <span class="btn-desc">Raat ko Upar ka bacha paisa ghar aaya.</span>
+            </button>
+            <button class="txn-btn move" onclick="openModal('dukan_to_ghar')">
+              <span class="btn-icon">&#x2192;</span>
+              <span class="btn-title">Dukan &#x2192; Ghar</span>
+              <span class="btn-desc">Raat ko Dukan ka bacha paisa ghar aaya.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Ghar se Payment / Kharcha</div>
+          <div class="txn-buttons">
+            <button class="txn-btn out" onclick="openModal('cash_out_ghar')">
+              <span class="btn-icon">&#8600;</span>
+              <span class="btn-title">Ghar se payment / kharcha</span>
+              <span class="btn-desc">Ghar se koi bada kharcha hua ya paisa nikla.</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: LOG -->
+  <div class="page" id="page-log">
+    <div class="log-page">
+      <div class="log-header">
+        <h2>Transaction Log</h2>
+        <div class="log-btns">
+          <button onclick="exportLog()">Export CSV</button>
+          <button class="btn-clear" onclick="clearLog()">Clear Day</button>
+        </div>
+      </div>
+      <div class="log-list" id="log-list">
+        <div class="empty-log" id="empty-log">No transactions yet today.<br>Bhagwan Ki Kripa Rahegi.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end app-wrap -->
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-balances" onclick="switchTab('balances')">
+    <span class="tab-icon">&#9679;</span>
+    <span>Balances</span>
+  </button>
+  <button class="tab-btn" id="tab-txn" onclick="switchTab('txn')">
+    <span class="tab-icon">&#8645;</span>
+    <span>Transactions</span>
+  </button>
+  <button class="tab-btn" id="tab-log" onclick="switchTab('log')">
+    <span class="tab-icon">&#9776;</span>
+    <span>Log</span>
+  </button>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <h3 id="modal-title">Confirm Transaction</h3>
+    <div class="modal-amount" id="modal-amount-display">&#8377; &mdash;</div>
+    <p id="modal-desc"></p>
+    <textarea class="note-input" id="modal-note" placeholder="Note (worker name, customer name, reason...)"></textarea>
+    <div class="modal-buttons">
+      <button class="btn-cancel"  onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmTxn()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── TAB SWITCHING ── */
+function switchTab(name) {
+  ['balances','txn','log'].forEach(function(t) {
+    document.getElementById('page-'+t).classList.toggle('active', t === name);
+    document.getElementById('tab-'+t).classList.toggle('active', t === name);
+  });
+}
+
+/* ── TRANSACTION DEFINITIONS ── */
+const TXN_DEFS = {
+  customer_cash_in: {
+    title: 'Customer ne bada amount diya (Dukan + Upar split)',
+    desc:  'Round lakhs Upar mein jaayenge (locked). Baaki change Dukan mein rahega.',
+    flowType: 'in',
+    fn: function(amt) {
+      var lakhs  = Math.floor(amt / 100000) * 100000;
+      var change = amt - lakhs;
+      var moves  = [];
+      if (lakhs  > 0) moves.push({ from: null, to: 'upar',  amt: lakhs,  label: 'Round figure Rs.' + numFmt(lakhs) + ' to Upar' });
+      if (change > 0) moves.push({ from: null, to: 'dukan', amt: change, label: 'Change Rs.' + numFmt(change) + ' to Dukan' });
+      if (lakhs === 0) moves.push({ from: null, to: 'dukan', amt: amt, label: 'Full amount Rs.' + numFmt(amt) + ' to Dukan' });
+      return moves;
+    }
+  },
+  customer_cash_in_direct: {
+    title: 'Chota payment - seedha Dukan mein',
+    desc:  'Poora amount Dukan mein hi aayega.',
+    flowType: 'in',
+    fn: function(amt) { return [{ from: null, to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' received at Dukan' }]; }
+  },
+  cash_out_to_customer: {
+    title: 'Customer ko cash diya - Dukan se',
+    desc:  'Dukan se customer ko paisa diya gaya. Yeh paisa system se BAHAR ja raha hai.',
+    flowType: 'out', from: 'dukan',
+    fn: function(amt) { return [{ from: 'dukan', to: null, amt: amt, label: 'Rs.' + numFmt(amt) + ' PAID OUT to customer from Dukan' }]; }
+  },
+  cash_out_dukan: {
+    title: 'Kharcha / Payment - Dukan se',
+    desc:  'Koi kharcha ya payment Dukan se hua. Yeh paisa system se BAHAR ja raha hai.',
+    flowType: 'out', from: 'dukan',
+    fn: function(amt) { return [{ from: 'dukan', to: null, amt: amt, label: 'Rs.' + numFmt(amt) + ' PAID OUT (expense) from Dukan' }]; }
+  },
+  dukan_to_upar: {
+    title: 'Dukan se Upar bheja',
+    desc:  'Dukan se cash upar (3rd floor) bheja gaya.',
+    flowType: 'move', from: 'dukan', to: 'upar',
+    fn: function(amt) { return [{ from: 'dukan', to: 'upar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Dukan to Upar' }]; }
+  },
+  upar_to_dukan: {
+    title: 'Upar se Dukan bulaya',
+    desc:  'Neeche (Dukan) mein zaroorat thi. Upar se paisa aaya.',
+    flowType: 'move', from: 'upar', to: 'dukan',
+    fn: function(amt) { return [{ from: 'upar', to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Dukan' }]; }
+  },
+  upar_to_pammi: {
+    title: 'Upar se Pammi Chowk bheja (50L trigger)',
+    desc:  'Upar mein 50L ya usse zyada ho gaya. Ab Pammi Chowk bheja.',
+    flowType: 'move', from: 'upar', to: 'pammi',
+    fn: function(amt) { return [{ from: 'upar', to: 'pammi', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Pammi Chowk' }]; }
+  },
+  pammi_to_dukan: {
+    title: 'Pammi Chowk se Dukan',
+    desc:  'Dukan mein bada supply chahiye tha. Pammi Chowk se aaya.',
+    flowType: 'move', from: 'pammi', to: 'dukan',
+    fn: function(amt) { return [{ from: 'pammi', to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' Pammi Chowk to Dukan' }]; }
+  },
+  pammi_to_ghar: {
+    title: 'Pammi Chowk se Ghar (Din Khatam)',
+    desc:  'Din ke ant mein - Pammi Chowk ka paisa ghar gaya.',
+    flowType: 'move', from: 'pammi', to: 'ghar',
+    fn: function(amt) { return [{ from: 'pammi', to: 'ghar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Pammi Chowk to Ghar' }]; }
+  },
+  upar_to_ghar: {
+    title: 'Upar se Ghar (Din Khatam)',
+    desc:  'Raat ko - Upar ka bacha hua paisa ghar aaya.',
+    flowType: 'move', from: 'upar', to: 'ghar',
+    fn: function(amt) { return [{ from: 'upar', to: 'ghar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Ghar' }]; }
+  },
+  dukan_to_ghar: {
+    title: 'Dukan se Ghar (Din Khatam)',
+    desc:  'Raat ko - Dukan ka bacha hua paisa ghar aaya.',
+    flowType: 'move', from: 'dukan', to: 'ghar',
+    fn: function(amt) { return [{ from: 'dukan', to: 'ghar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Dukan to Ghar' }]; }
+  },
+  cash_out_ghar: {
+    title: 'Ghar se payment / kharcha',
+    desc:  'Ghar se koi bada kharcha hua. Yeh paisa system se BAHAR ja raha hai.',
+    flowType: 'out', from: 'ghar',
+    fn: function(amt) { return [{ from: 'ghar', to: null, amt: amt, label: 'Rs.' + numFmt(amt) + ' PAID OUT from Ghar' }]; }
+  }
+};
+
+/* ── STATE ── */
+var balances = { dukan:0, upar:0, pammi:0, ghar:0 };
+var txnLog = [];
+var pendingTxnType = null;
+var STORAGE_KEY = 'ishaGold_v2';
+
+/* ── QUICK ADD ── */
+var lastQaBtn  = null;
+var lastQaTime = 0;
+function quickAdd(btn) {
+  var val = parseInt(btn.dataset.val);
+  var now = Date.now();
+  var inp = document.getElementById('amt-input');
+  var cur = parseInt(inp.value) || 0;
+  if (lastQaBtn === btn && (now - lastQaTime) < 800) {
+    inp.value  = cur + val;
+    lastQaBtn  = null;
+  } else {
+    inp.value  = cur + val;
+    lastQaBtn  = btn;
+    lastQaTime = now;
+  }
+  onAmtChange();
+  btn.classList.add('qa-active');
+  setTimeout(function(){ btn.classList.remove('qa-active'); }, 500);
+}
+
+/* ── FORMAT ── */
+function numFmt(n) { return n.toLocaleString('en-IN'); }
+function shortFmt(n) {
+  if (n >= 10000000) return (n/10000000).toFixed(2) + ' Cr';
+  if (n >= 100000)   return (n/100000).toFixed(2) + ' L';
+  if (n >= 1000)     return (n/1000).toFixed(1) + 'k';
+  return numFmt(n);
+}
+
+/* ── STORAGE ── */
+function loadState() {
+  try {
+    var s = localStorage.getItem(STORAGE_KEY);
+    if (s) { var d = JSON.parse(s); balances = d.balances||{dukan:0,upar:0,pammi:0,ghar:0}; txnLog = d.txnLog||[]; }
+  } catch(e) {}
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ balances:balances, txnLog:txnLog }));
+}
+
+/* ── UI UPDATE ── */
+function updateUI() {
+  var locs = ['dukan','upar','pammi','ghar'];
+  locs.forEach(function(loc) {
+    document.getElementById('bal-'+loc).textContent = '\u20B9' + numFmt(balances[loc]);
+    document.getElementById('sub-'+loc).textContent = balances[loc] > 0 ? shortFmt(balances[loc]) : 'Empty';
+    document.getElementById('card-'+loc).classList.toggle('highlight', balances[loc] > 0);
+  });
+  var total = 0;
+  locs.forEach(function(l){ total += balances[l]; });
+  document.getElementById('total-bal').textContent = '\u20B9' + numFmt(total);
+  renderLog();
+}
+
+function renderLog() {
+  var el    = document.getElementById('log-list');
+  var empty = document.getElementById('empty-log');
+  if (txnLog.length === 0) {
+    empty.style.display = 'block';
+    while (el.children.length > 1) el.removeChild(el.lastChild);
+    return;
+  }
+  empty.style.display = 'none';
+  while (el.children.length > 1) el.removeChild(el.lastChild);
+  var rev = txnLog.slice().reverse();
+  rev.forEach(function(txn) {
+    var div = document.createElement('div');
+    div.className = 'log-entry';
+    var dirLabel = '', dirClass = '', amtClass = 'amt-move';
+    if (txn.flowType === 'in')  { dirLabel = '+ CASH IN - Money came into system';  dirClass = 'dir-in';  amtClass = 'amt-in';  }
+    if (txn.flowType === 'out') { dirLabel = '- PAID OUT - Money left the system';   dirClass = 'dir-out'; amtClass = 'amt-out'; }
+    if (txn.flowType === 'move'){ dirLabel = 'Internal Move between locations';       dirClass = 'dir-move'; }
+    var snap = txn.snap;
+    div.innerHTML =
+      '<div class="log-time">' + txn.time + '</div>' +
+      '<div class="log-direction ' + dirClass + '">' + dirLabel + '</div>' +
+      '<div class="log-type">' + txn.typeLabel + '</div>' +
+      '<div class="log-amount ' + amtClass + '">\u20B9' + numFmt(txn.amt) + '</div>' +
+      '<div class="log-route">' + txn.route + '</div>' +
+      (txn.note ? '<div class="log-note">Note: ' + txn.note + '</div>' : '') +
+      '<div class="log-balances">After:&nbsp; Dukan: \u20B9' + numFmt(snap.dukan) +
+        ' | Upar: \u20B9' + numFmt(snap.upar) +
+        ' | Pammi: \u20B9' + numFmt(snap.pammi) +
+        ' | Ghar: \u20B9' + numFmt(snap.ghar) + '</div>';
+    el.appendChild(div);
+  });
+}
+
+/* ── AMOUNT HELPER ── */
+function onAmtChange() {
+  document.getElementById('warn-banner').classList.remove('visible');
+}
+
+/* ── MODAL ── */
+function openModal(type) {
+  var raw = document.getElementById('amt-input').value;
+  var amt = parseInt(raw);
+  if (!raw || isNaN(amt) || amt <= 0) {
+    var inp = document.getElementById('amt-input');
+    inp.focus(); inp.style.borderColor = 'var(--red)';
+    setTimeout(function(){ inp.style.borderColor = ''; }, 1200);
+    // Switch to txn tab if not already there
+    switchTab('txn');
+    return;
+  }
+  var def = TXN_DEFS[type];
+  pendingTxnType = type;
+  document.getElementById('modal-title').textContent          = def.title;
+  document.getElementById('modal-amount-display').textContent = '\u20B9' + numFmt(amt);
+  var descExtra = def.desc;
+  if (type === 'customer_cash_in') {
+    var lakhs  = Math.floor(amt / 100000) * 100000;
+    var change = amt - lakhs;
+    if (lakhs > 0) descExtra += '\n\nUpar jaayega: \u20B9' + numFmt(lakhs) + '\nDukan mein rahega: \u20B9' + numFmt(change);
+  }
+  if (def.from && balances[def.from] < amt) {
+    var loc = def.from.charAt(0).toUpperCase() + def.from.slice(1);
+    descExtra += '\n\n! Warning: ' + loc + ' has only \u20B9' + numFmt(balances[def.from]) + '. Please verify!';
+  }
+  document.getElementById('modal-desc').textContent = descExtra;
+  document.getElementById('modal-note').value = '';
+  document.getElementById('modal-overlay').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  pendingTxnType = null;
+}
+function confirmTxn() {
+  if (!pendingTxnType) return;
+  var amt  = parseInt(document.getElementById('amt-input').value);
+  var note = document.getElementById('modal-note').value.trim();
+  var def  = TXN_DEFS[pendingTxnType];
+  var moves = def.fn(amt, balances);
+  moves.forEach(function(m) {
+    if (m.from) balances[m.from] = Math.max(0, balances[m.from] - m.amt);
+    if (m.to)   balances[m.to]   = balances[m.to] + m.amt;
+  });
+  var now  = new Date();
+  var tStr = now.toLocaleTimeString('en-IN',  { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
+  var dStr = now.toLocaleDateString('en-IN',  { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+  txnLog.push({
+    time:      tStr + ' | ' + dStr,
+    typeLabel: def.title,
+    flowType:  def.flowType,
+    amt:       amt,
+    route:     moves.map(function(m){ return m.label; }).join(' + '),
+    note:      note,
+    snap:      { dukan:balances.dukan, upar:balances.upar, pammi:balances.pammi, ghar:balances.ghar }
+  });
+  saveState();
+  closeModal();
+  document.getElementById('amt-input').value = '';
+  updateUI();
+  // Switch to balances tab to show updated values
+  switchTab('balances');
+}
+
+/* ── CLEAR / EXPORT ── */
+function clearLog() {
+  if (!confirm('Are you sure? All transactions and balances will be cleared for a new day.\n\nThis cannot be undone.')) return;
+  balances = { dukan:0, upar:0, pammi:0, ghar:0 };
+  txnLog   = [];
+  saveState();
+  updateUI();
+  showBlessingModal();
+}
+
+function escapeCsv(v) {
+  if (v === null || v === undefined) return '';
+  var s = String(v);
+  if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+    return '"' + s.replace(/"/g,'""') + '"';
+  }
+  return s;
+}
+
+function exportLog() {
+  if (txnLog.length === 0) { alert('No transactions to export.'); return; }
+  var headers = [
+    'Sr No', 'Time (IST)', 'Date',
+    'Transaction Type', 'Cash Flow Direction',
+    'Amount (Rs.)', 'Amount (Short Form)',
+    'Movement Details', 'Note / Remark',
+    'Dukan Balance After (Rs.)', 'Upar Balance After (Rs.)',
+    'Pammi Chowk Balance After (Rs.)', 'Ghar Balance After (Rs.)',
+    'Total System Balance After (Rs.)'
+  ];
+  var rows = txnLog.map(function(t, i) {
+    var parts = t.time.split(' | ');
+    var timePart = parts[0] ? parts[0].trim() : '';
+    var datePart = parts[1] ? parts[1].trim() : '';
+    var total = t.snap.dukan + t.snap.upar + t.snap.pammi + t.snap.ghar;
+    var flowLabel = 'Internal Move (No change in total)';
+    if (t.flowType === 'in')  flowLabel = 'CASH IN - Received into system';
+    if (t.flowType === 'out') flowLabel = 'PAID OUT - Left the system';
+    return [
+      i+1,
+      escapeCsv(timePart), escapeCsv(datePart),
+      escapeCsv(t.typeLabel), escapeCsv(flowLabel),
+      t.amt, escapeCsv(shortFmt(t.amt)),
+      escapeCsv(t.route), escapeCsv(t.note || ''),
+      t.snap.dukan, t.snap.upar, t.snap.pammi, t.snap.ghar, total
+    ].join(',');
+  });
+  var totalIn  = 0, totalOut = 0;
+  txnLog.forEach(function(t){ if (t.flowType==='in') totalIn+=t.amt; if(t.flowType==='out') totalOut+=t.amt; });
+  var finalTotal = balances.dukan + balances.upar + balances.pammi + balances.ghar;
+  var sep   = ',,,,,,,,,,,,,';
+  var summary = [
+    '',
+    '--- DAILY SUMMARY ---' + sep,
+    'Total Cash Received (CASH IN):,' + totalIn   + ',' + escapeCsv('Rs. ' + numFmt(totalIn))   + sep,
+    'Total Cash Paid Out (PAID OUT):,' + totalOut  + ',' + escapeCsv('Rs. ' + numFmt(totalOut))  + sep,
+    'Total Transactions:,' + txnLog.length + sep,
+    '',
+    'FINAL BALANCES:' + sep,
+    'Dukan:,' + balances.dukan + ',' + escapeCsv('Rs. ' + numFmt(balances.dukan)) + sep,
+    'Upar:,'  + balances.upar  + ',' + escapeCsv('Rs. ' + numFmt(balances.upar))  + sep,
+    'Pammi Chowk:,' + balances.pammi + ',' + escapeCsv('Rs. ' + numFmt(balances.pammi)) + sep,
+    'Ghar:,'  + balances.ghar  + ',' + escapeCsv('Rs. ' + numFmt(balances.ghar))  + sep,
+    'TOTAL SYSTEM:,' + finalTotal + ',' + escapeCsv('Rs. ' + numFmt(finalTotal)) + sep
+  ];
+  var csv  = [headers.join(',')].concat(rows).concat(summary).join('\r\n');
+  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  var a    = document.createElement('a');
+  a.href   = URL.createObjectURL(blob);
+  a.download = 'IshaGold_CashLog_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+/* ── BLESSING ── */
+function showBlessingModal() {
+  setBlessingDate();
+  document.getElementById('blessing-overlay').classList.add('active');
+}
+function closeBlessingModal() {
+  document.getElementById('blessing-overlay').classList.remove('active');
+}
+function setBlessingDate() {
+  var now = new Date();
+  var d   = now.toLocaleDateString('en-IN', {
+    weekday:'long', day:'2-digit', month:'long', year:'numeric', timeZone:'Asia/Kolkata'
+  });
+  document.getElementById('blessing-date').textContent = d;
+}
+
+/* ── CLOCK ── */
+function updateClock() {
+  var now = new Date();
+  document.getElementById('hdr-time').textContent = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
+  document.getElementById('hdr-date').textContent = now.toLocaleDateString('en-IN', { weekday:'short', day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+document.getElementById('modal-overlay').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+document.addEventListener('keydown', function(e) { if(e.key==='Escape') closeModal(); });
+
+/* ── INIT ── */
+loadState();
+updateUI();
+setBlessingDate();
+</script>
+</body>
+</html>
