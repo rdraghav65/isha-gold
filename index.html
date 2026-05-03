@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0e0e">
+<title>Isha Gold — Bank/RTGS Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  html { touch-action: manipulation; }
+  :root {
+    --gold: #b8860b; --gold-light: #f5e07a; --gold-dark: #7a5c00;
+    --bg: #0e0e0e; --surface: #1a1a1a; --surface2: #242424; --surface3: #2e2e2e;
+    --border: rgba(184,134,11,0.25); --text: #f0ead6; --text2: #b0a070; --text3: #6a5a30;
+    --green: #4caf7a; --red: #e05050;
+    --font: 'Georgia', serif; --mono: 'Courier New', monospace;
+    --tab-h: 60px;
+    --header-h: 54px;
+    --bar-h: 32px;
+  }
+
+  html, body {
+    height: 100%; background: var(--bg); color: var(--text);
+    font-family: var(--font); overflow: hidden;
+  }
+
+  /* ── SPIRITUAL BAR ── */
+  .spiritual-bar {
+    background: linear-gradient(90deg,#1a0e00,#2a1800,#1a0e00);
+    border-bottom: 1px solid rgba(184,134,11,0.4);
+    height: var(--bar-h);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 10px; color: var(--gold-light); letter-spacing: 1px; font-style: italic;
+    overflow: hidden; white-space: nowrap;
+  }
+  .diya { font-size: 14px; animation: flicker 2.5s ease-in-out infinite alternate; flex-shrink: 0; }
+  .spiritual-text { overflow: hidden; text-overflow: ellipsis; }
+  @keyframes flicker {
+    0%   { opacity: 0.7; text-shadow: 0 0 4px #ffaa00; }
+    50%  { opacity: 1;   text-shadow: 0 0 10px #ffcc44, 0 0 20px #ff8800; }
+    100% { opacity: 0.85; text-shadow: 0 0 6px #ffaa00; }
+  }
+
+  /* ── HEADER ── */
+  header {
+    height: var(--header-h);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; background: var(--surface); flex-shrink: 0;
+  }
+  header h1 { font-size: 13px; color: var(--gold-light); letter-spacing: 1.5px; text-transform: uppercase; font-weight: normal; }
+  .hdr-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+  .hdr-date  { font-size: 9px; color: var(--text2); font-family: var(--mono); }
+  .hdr-time  { font-size: 13px; color: var(--gold-light); font-family: var(--mono); letter-spacing: 1px; }
+
+  /* ── TAB BAR ── */
+  .tab-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: var(--tab-h);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex; z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    font-family: var(--mono); color: var(--text3); background: none; border: none;
+    cursor: pointer; transition: color 0.2s; padding: 6px 4px; position: relative;
+  }
+  .tab-btn .tab-icon { font-size: 18px; }
+  .tab-btn.active { color: var(--gold-light); }
+  .tab-btn.active::before {
+    content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 2px;
+    background: var(--gold); border-radius: 0 0 2px 2px;
+  }
+
+  /* ── PAGES ── */
+  .app-wrap {
+    position: fixed;
+    top: calc(var(--bar-h) + var(--header-h));
+    left: 0; right: 0;
+    bottom: var(--tab-h);
+    overflow: hidden;
+  }
+  .page { position: absolute; inset: 0; overflow-y: auto; display: none; -webkit-overflow-scrolling: touch; }
+  .page.active { display: block; }
+
+  /* ── PAGE: BALANCES ── */
+  .balances-page { padding: 14px; }
+  .locations { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .loc-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; transition: border-color 0.2s;
+  }
+  .loc-card.highlight { border-color: var(--gold); background: #1e1a08; }
+  .loc-card .loc-tag    { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; font-family: var(--mono); }
+  .loc-card .loc-name   { font-size: 18px; color: var(--gold-light); font-weight: bold; margin-bottom: 8px; }
+  .loc-card .loc-amount { font-size: 16px; color: var(--text); font-family: var(--mono); font-weight: bold; }
+  .loc-card.highlight .loc-amount { color: var(--gold-light); }
+  .loc-card .loc-sub    { font-size: 9px; color: var(--text3); margin-top: 3px; font-family: var(--mono); }
+
+  .total-bar {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .total-bar span   { font-size: 10px; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; font-family: var(--mono); }
+  .total-bar strong { font-size: 22px; color: var(--gold-light); font-family: var(--mono); }
+
+  /* ── PAGE: TRANSACTIONS ── */
+  .txn-page { padding: 12px 12px 20px; }
+  .section-title { font-size: 9px; letter-spacing: 2.5px; color: var(--text3); text-transform: uppercase; margin-bottom: 8px; font-family: var(--mono); }
+
+  .amount-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+  .amt-label  { font-size: 20px; color: var(--gold); font-family: var(--mono); flex-shrink: 0; }
+  .amt-input  {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; font-size: 22px;
+    color: transparent; font-family: var(--mono); outline: none;
+    width: 100%; -webkit-appearance: none; caret-color: var(--gold-light);
+  }
+  .amt-input:focus { border-color: var(--gold); }
+  .amt-input::placeholder { color: var(--text3); font-size: 13px; opacity: 0; }
+
+  .quick-hint { font-size: 9px; color: var(--text3); font-family: var(--mono); margin-bottom: 6px; }
+  .quick-amounts { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .qa-btn {
+    background: var(--surface3); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 12px; color: var(--text2); font-family: var(--mono);
+    cursor: pointer; transition: all 0.15s; font-weight: bold; min-width: 44px; text-align: center;
+  }
+  .qa-btn:active { transform: scale(0.94); }
+  .qa-btn.qa-active { border-color: var(--gold); background: #1e1a08; color: var(--gold-light); }
+
+  .warn-banner {
+    background: #2a1a00; border: 1px solid #7a4400; border-radius: 6px;
+    padding: 8px 12px; font-size: 11px; color: #d08030; font-family: var(--mono);
+    margin-bottom: 10px; display: none;
+  }
+  .warn-banner.visible { display: block; }
+
+  .txn-groups { display: flex; flex-direction: column; gap: 12px; }
+  .txn-group-label { font-size: 9px; letter-spacing: 1.5px; color: var(--gold-dark); text-transform: uppercase; margin-bottom: 7px; font-family: var(--mono); border-left: 2px solid var(--gold-dark); padding-left: 8px; }
+  .txn-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .txn-btn {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 10px; cursor: pointer; text-align: left; transition: all 0.15s;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .txn-btn:active { transform: scale(0.97); border-color: var(--gold); background: #1e1a08; }
+  .txn-btn .btn-icon  { font-size: 14px; margin-bottom: 2px; }
+  .txn-btn .btn-title { font-size: 11px; font-weight: bold; line-height: 1.3; color: var(--text); }
+  .txn-btn .btn-desc  { font-size: 9px; color: var(--text3); line-height: 1.4; font-family: var(--mono); }
+  .txn-btn.in  .btn-title { color: var(--green); }
+  .txn-btn.out .btn-title { color: var(--red); }
+  .txn-btn.move .btn-title { color: var(--gold-light); }
+  .txn-btn.udhar .btn-title { color: #c084fc; }
+  .txn-btn.udhar { border-color: rgba(192,132,252,0.3); }
+  .dir-udhar { color: #c084fc; }
+  .amt-udhar { color: #c084fc; }
+
+  /* ── PAGE: LOG ── */
+  .log-page { padding: 0; }
+  .log-header {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--surface); position: sticky; top: 0; z-index: 5;
+  }
+  .log-header h2 { font-size: 10px; letter-spacing: 2px; color: var(--text2); text-transform: uppercase; font-weight: normal; font-family: var(--mono); }
+  .log-btns { display: flex; gap: 6px; }
+  .log-header button {
+    font-size: 10px; color: var(--text3); background: none; border: 1px solid var(--text3);
+    border-radius: 4px; padding: 5px 10px; cursor: pointer; font-family: var(--mono); transition: all 0.15s;
+  }
+  .log-header button:active { color: var(--gold-light); border-color: var(--gold); }
+  .log-header .btn-clear:active { color: var(--red); border-color: var(--red); }
+  .log-list { padding-bottom: 10px; }
+  .log-entry { border-bottom: 1px solid rgba(184,134,11,0.08); padding: 10px 14px; position: relative; }
+  .log-entry.deleted-entry { opacity: 0.45; background: rgba(224,80,80,0.04); }
+  .log-entry.audit-entry { background: rgba(184,134,11,0.04); border-left: 2px solid var(--text3); padding-left: 12px; }
+  .log-entry .log-time      { font-size: 9px; color: var(--text3); font-family: var(--mono); margin-bottom: 3px; }
+  .log-entry .log-direction { font-size: 10px; font-weight: bold; font-family: var(--mono); margin-bottom: 2px; }
+  .log-entry .log-type      { font-size: 10px; color: var(--text2); margin-bottom: 2px; }
+  .log-entry .log-amount    { font-size: 17px; font-family: var(--mono); font-weight: bold; }
+  .log-entry .log-route     { font-size: 9px; color: var(--text3); font-family: var(--mono); margin-top: 3px; }
+  .log-entry .log-note      { font-size: 9px; color: var(--gold); font-family: var(--mono); margin-top: 2px; }
+  .log-entry .log-balances  { font-size: 8px; color: var(--text3); font-family: var(--mono); margin-top: 5px; background: rgba(184,134,11,0.05); padding: 4px 6px; border-radius: 4px; line-height: 1.9; }
+  .log-entry .log-audit-tag { font-size: 8px; color: var(--text3); font-family: var(--mono); font-style: italic; margin-bottom: 2px; }
+  .log-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .log-action-btn {
+    font-size: 9px; font-family: var(--mono); padding: 5px 10px; border-radius: 4px;
+    cursor: pointer; border: 1px solid; background: none; transition: all 0.15s; letter-spacing: 0.5px;
+  }
+  .log-action-btn.edit-btn   { color: var(--gold-light); border-color: var(--gold-dark); }
+  .log-action-btn.delete-btn { color: var(--red); border-color: rgba(224,80,80,0.4); }
+  .log-action-btn:active { opacity: 0.7; transform: scale(0.96); }
+  .dir-in   { color: var(--green); }
+  .dir-out  { color: var(--red); }
+  .dir-move { color: var(--gold-light); }
+  .amt-in   { color: var(--green); }
+  .amt-out  { color: var(--red); }
+  .amt-move { color: var(--gold-light); }
+  .empty-log { padding: 50px 20px; text-align: center; color: var(--text3); font-size: 12px; font-family: var(--mono); line-height: 2; }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+    z-index: 100; align-items: flex-end; justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--gold);
+    border-radius: 18px 18px 0 0; padding: 22px 22px 28px;
+    width: 100%; max-width: 480px;
+  }
+  .modal-drag { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .modal h3 { font-size: 14px; color: var(--gold-light); margin-bottom: 6px; }
+  .modal p  { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.6; white-space: pre-line; }
+  .modal .modal-amount { font-size: 30px; font-family: var(--mono); color: var(--gold-light); margin: 8px 0; }
+  .modal-buttons { display: flex; gap: 10px; }
+  .modal-buttons button { flex: 1; padding: 14px 16px; border-radius: 8px; font-size: 15px; cursor: pointer; border: 1px solid; font-family: var(--font); transition: all 0.15s; }
+  .btn-cancel  { background: none; border-color: var(--text3); color: var(--text2); }
+  .btn-confirm { background: var(--gold-dark); border-color: var(--gold); color: var(--gold-light); }
+  .btn-confirm:active { background: var(--gold); color: #000; }
+  .note-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; font-size: 14px; color: var(--text); font-family: var(--font);
+    outline: none; resize: none; margin-bottom: 14px; height: 52px; -webkit-appearance: none;
+  }
+  .note-input:focus { border-color: var(--gold); }
+
+  /* ── BLESSING MODAL ── */
+  .blessing-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .blessing-overlay.active { display: flex; }
+  .blessing-box {
+    background: linear-gradient(135deg,#1a1000,#2a1c00,#1a1000);
+    border: 2px solid var(--gold); border-radius: 18px; padding: 30px 22px;
+    text-align: center; width: 100%; max-width: 380px;
+    box-shadow: 0 0 50px rgba(184,134,11,0.35);
+  }
+  .blessing-top-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; margin-bottom: 10px;
+  }
+  .blessing-incense { font-size: 26px; animation: flicker 2s ease-in-out infinite alternate; }
+  .blessing-diya-center { font-size: 32px; animation: flicker 2s ease-in-out infinite alternate; }
+  .blessing-symbol { font-size: 18px; color: var(--gold-light); line-height: 1; }
+  .blessing-date  { font-size: 11px; color: var(--text2); font-family: var(--mono); margin-bottom: 14px; }
+  .blessing-main  { font-size: 20px; color: var(--gold-light); letter-spacing: 1.5px; line-height: 1.6; font-style: italic; }
+  .blessing-divider { color: var(--gold-dark); margin: 12px 0 10px; font-size: 12px; }
+  .blessing-names { font-size: 16px; color: var(--text); line-height: 2.4; margin-bottom: 22px; font-weight: normal; }
+  .blessing-names span { display: block; }
+  .blessing-btn {
+    background: var(--gold-dark); border: 1px solid var(--gold); color: var(--gold-light);
+    padding: 13px 30px; border-radius: 8px; font-size: 15px; cursor: pointer;
+    font-family: var(--font); letter-spacing: 1px; transition: all 0.2s; width: 100%;
+  }
+  .blessing-btn:active { background: var(--gold); color: #000; }
+
+  .udhar-loc-btn {
+    flex:1; padding:9px 6px; border-radius:6px; font-size:11px; font-family:var(--mono);
+    background:var(--surface2); border:1px solid var(--border); color:var(--text2); cursor:pointer;
+    transition:all 0.15s; text-align:center;
+  }
+  .udhar-loc-btn.active-loc { background:#2d1b69; border-color:#7c3aed; color:#e9d5ff; }
+  .udhar-chip {
+    padding:6px 12px; border-radius:20px; font-size:11px; font-family:var(--mono);
+    background:var(--surface3); border:1px solid rgba(192,132,252,0.3); color:#c084fc;
+    cursor:pointer; transition:all 0.15s; white-space:nowrap;
+  }
+  .udhar-chip.selected-chip { background:#2d1b69; border-color:#7c3aed; color:#e9d5ff; }
+  .udhar-ledger-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:11px 0; border-bottom:1px solid rgba(192,132,252,0.1);
+  }
+  .udhar-ledger-row:last-child { border-bottom:none; }
+  .udhar-ledger-name { font-size:14px; color:var(--text); }
+  .udhar-ledger-amt  { font-size:16px; font-family:var(--mono); color:#c084fc; font-weight:bold; }
+  .udhar-ledger-sub  { font-size:9px; color:var(--text3); font-family:var(--mono); margin-top:1px; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--text3); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- BLESSING MODAL -->
+<div class="blessing-overlay active" id="blessing-overlay">
+  <div class="blessing-box">
+    <!-- agarbatti  ॐ  diya  ॐ  agarbatti -->
+    <div class="blessing-top-row">
+      <span class="blessing-incense">&#x1F9FF;</span>
+      <span class="blessing-symbol">ॐ</span>
+      <span class="blessing-diya-center">&#x1FA94;</span>
+      <span class="blessing-symbol">ॐ</span>
+      <span class="blessing-incense">&#x1F9FF;</span>
+    </div>
+    <div class="blessing-date" id="blessing-date"></div>
+    <div class="blessing-main">Bhagwan Ji Ki Kripa Rahegi aur Meherbani Badhti Rahegi</div>
+    <div class="blessing-divider">~ ~ ~</div>
+    <div class="blessing-names">
+      <span>&#x1F64F; Jai Shree Ram Ji &#x1F64F;</span>
+      <span>&#x1F64F; Jai Mata Di &#x1F64F;</span>
+      <span>&#x1F64F; Jai Surinder Sai Ji Maharaj Ji Ki Jai &#x1F64F;</span>
+    </div>
+    <button class="blessing-btn" onclick="closeBlessingModal()">Shubh Shuruat &#x1FA94; &mdash; Start Day</button>
+  </div>
+</div>
+
+<!-- SPIRITUAL BAR -->
+<div class="spiritual-bar">
+  <span class="diya">&#x1FA94;</span>
+  <span class="spiritual-text">&#10022; JAI SHREE RAM JI &nbsp;&#10022;&nbsp; JAI MATA DI &nbsp;&#10022;&nbsp; JAI SURINDER SAI JI MAHARAJ JI KI JAI &#10022;</span>
+  <span class="diya">&#x1FA94;</span>
+</div>
+
+<!-- HEADER -->
+<header>
+  <h1>&#9830; Isha Gold &mdash; Bank/RTGS Tracker</h1>
+  <div class="hdr-right">
+    <span class="hdr-time" id="hdr-time"></span>
+    <span class="hdr-date" id="hdr-date"></span>
+  </div>
+</header>
+
+<!-- PAGES WRAPPER -->
+<div class="app-wrap">
+
+  <!-- PAGE 1: BALANCES -->
+  <div class="page active" id="page-balances">
+    <div class="balances-page">
+      <div class="section-title" style="margin-bottom:10px;">Current Balances</div>
+      <div class="locations">
+        <div class="loc-card" id="card-dukan">
+          <div class="loc-tag">Main Shop</div>
+          <div class="loc-name">Dukan</div>
+          <div class="loc-amount" id="bal-dukan">&#8377;0</div>
+          <div class="loc-sub"    id="sub-dukan">Empty</div>
+        </div>
+        <div class="loc-card" id="card-upar">
+          <div class="loc-tag">3rd Floor</div>
+          <div class="loc-name">Upar</div>
+          <div class="loc-amount" id="bal-upar">&#8377;0</div>
+          <div class="loc-sub"   id="sub-upar">Empty</div>
+        </div>
+        <div class="loc-card" id="card-pammi">
+          <div class="loc-tag">Storage</div>
+          <div class="loc-name">Godown</div>
+          <div class="loc-amount" id="bal-pammi">&#8377;0</div>
+          <div class="loc-sub"   id="sub-pammi">Empty</div>
+        </div>
+        <div class="loc-card" id="card-ghar">
+          <div class="loc-tag">Home Safe</div>
+          <div class="loc-name">Ghar</div>
+          <div class="loc-amount" id="bal-ghar">&#8377;0</div>
+          <div class="loc-sub"   id="sub-ghar">Empty</div>
+        </div>
+      </div>
+      <div class="total-bar">
+        <span>Total Cash in System</span>
+        <strong id="total-bal">&#8377;0</strong>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="loc-card" id="card-udhar" style="border-color:rgba(192,132,252,0.35);cursor:pointer;" onclick="openUdharLedger()">
+          <div class="loc-tag" style="color:#a855f7;">Udhar Ledger &#128221; Tap to View Pending List</div>
+          <div class="loc-name" style="color:#c084fc;font-size:15px;">Total Udhar Diya</div>
+          <div class="loc-amount" id="bal-udhar" style="color:#c084fc;">&#8377;0</div>
+          <div class="loc-sub"   id="sub-udhar" style="color:#7c3aed;">Not counted in system total</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: TRANSACTIONS -->
+  <div class="page" id="page-txn">
+    <div class="txn-page">
+      <div class="section-title">Rakam Daalo &mdash; Enter Amount</div>
+      <div class="warn-banner" id="warn-banner">&#9888; Warning: Balance at source is lower than entered amount. Please verify!</div>
+      <div class="amount-row">
+        <span class="amt-label">&#8377;</span>
+        <div style="flex:1;position:relative;">
+          <input type="tel" inputmode="numeric" pattern="[0-9]*" class="amt-input" id="amt-input" placeholder="0" oninput="onAmtChange(this)">
+          <div id="amt-display" style="position:absolute;top:0;left:0;right:0;bottom:0;padding:12px 14px;font-size:22px;color:var(--gold-light);font-family:var(--mono);pointer-events:none;display:flex;align-items:center;"></div>
+        </div>
+      </div>
+      <div class="quick-hint">Quick buttons &mdash; tap once to add, tap again to double:</div>
+      <div class="quick-amounts">
+        <button class="qa-btn" data-val="25000"   onclick="quickAdd(this)">25k</button>
+        <button class="qa-btn" data-val="50000"   onclick="quickAdd(this)">50k</button>
+        <button class="qa-btn" data-val="75000"   onclick="quickAdd(this)">75k</button>
+        <button class="qa-btn" data-val="100000"  onclick="quickAdd(this)">1L</button>
+        <button class="qa-btn" data-val="250000"  onclick="quickAdd(this)">2.5L</button>
+        <button class="qa-btn" data-val="500000"  onclick="quickAdd(this)">5L</button>
+        <button class="qa-btn" data-val="1000000" onclick="quickAdd(this)">10L</button>
+        <button class="qa-btn" data-val="1500000" onclick="quickAdd(this)">15L</button>
+        <button class="qa-btn" data-val="2000000" onclick="quickAdd(this)">20L</button>
+        <button class="qa-btn" data-val="2500000" onclick="quickAdd(this)">25L</button>
+        <button class="qa-btn" data-val="5000000" onclick="quickAdd(this)">50L</button>
+      </div>
+
+      <div class="section-title" style="margin-bottom:10px;">Transaction Type &mdash; Kaisi Movement Hai?</div>
+      <div class="txn-groups">
+
+        <div class="txn-group">
+          <div class="txn-group-label">Customer se Paisa Aaya &mdash; Cash IN</div>
+          <div class="txn-buttons">
+            <button class="txn-btn in" onclick="openModal('customer_cash_in_direct')" style="grid-column:1/-1;">
+              <span class="btn-icon">&#8599;</span>
+              <span class="btn-title">Dukan Mein Seedha Payment</span>
+              <span class="btn-desc">Poora amount Dukan mein aayega.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Udhar</div>
+          <div class="txn-buttons">
+            <button class="txn-btn udhar" onclick="openModal('udhar_diya')">
+              <span class="btn-icon">&#128221;</span>
+              <span class="btn-title">Udhar Diya</span>
+              <span class="btn-desc">Cash nahi gaya — sirf udhar record hoga. Note mein naam likhein.</span>
+            </button>
+            <button class="txn-btn in" onclick="openUdharPaymentModal()" style="border-color:rgba(76,175,122,0.4);">
+              <span class="btn-icon">&#9989;</span>
+              <span class="btn-title" style="color:var(--green);">Udhar Ki Payment Aayi</span>
+              <span class="btn-desc">Naam enter karo — cash Dukan mein aayega, udhar balance update hoga.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Customer ko Paisa Diya &mdash; Cash OUT</div>
+          <div class="txn-buttons">
+            <button class="txn-btn out" onclick="openModal('cash_out_to_customer')">
+              <span class="btn-icon">&#8600;</span>
+              <span class="btn-title">Customer ko diya &mdash; Dukan se</span>
+              <span class="btn-desc">Dukan se customer ko cash payment.</span>
+            </button>
+            <button class="txn-btn out" onclick="openModal('cash_out_dukan')">
+              <span class="btn-icon">&#8600;</span>
+              <span class="btn-title">Kharcha / Payment &mdash; Dukan se</span>
+              <span class="btn-desc">Supplier, expense etc. Dukan se gaya.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Dukan aur Upar ke beech &mdash; Move Karo</div>
+          <div class="txn-buttons">
+            <button class="txn-btn move" onclick="openModal('dukan_to_upar')">
+              <span class="btn-icon">&#8593;</span>
+              <span class="btn-title">Dukan &#x2192; Upar bheja</span>
+              <span class="btn-desc">Round figure banana tha ya safe rakhna tha.</span>
+            </button>
+            <button class="txn-btn move" onclick="openModal('upar_to_dukan')">
+              <span class="btn-icon">&#8595;</span>
+              <span class="btn-title">Upar se Dukan bulaya</span>
+              <span class="btn-desc">Neeche zaroorat thi, upar se maangaya.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Upar se Godown &mdash; 50L ho gaya</div>
+          <div class="txn-buttons">
+            <button class="txn-btn move" onclick="openModal('upar_to_pammi')">
+              <span class="btn-icon">&#x2192;</span>
+              <span class="btn-title">Upar &#x2192; Godown</span>
+              <span class="btn-desc">50L ya multiple Upar mein. Ab Godown.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Godown &mdash; Movements</div>
+          <div class="txn-buttons">
+            <button class="txn-btn move" onclick="openModal('pammi_to_dukan')">
+              <span class="btn-icon">&#8599;</span>
+              <span class="btn-title">Godown &#x2192; Dukan</span>
+              <span class="btn-desc">Dukan mein bada cash chahiye tha.</span>
+            </button>
+            <button class="txn-btn move" onclick="openModal('pammi_to_ghar')">
+              <span class="btn-icon">&#x2192;</span>
+              <span class="btn-title">Godown &#x2192; Ghar</span>
+              <span class="btn-desc">Din ke ant mein &mdash; paisa ghar gaya.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Din Khatam &mdash; Ghar Bhejna</div>
+          <div class="txn-buttons">
+            <button class="txn-btn move" onclick="openModal('upar_to_ghar')">
+              <span class="btn-icon">&#x2192;</span>
+              <span class="btn-title">Upar &#x2192; Ghar</span>
+              <span class="btn-desc">Raat ko Upar ka bacha paisa ghar aaya.</span>
+            </button>
+            <button class="txn-btn move" onclick="openModal('dukan_to_ghar')">
+              <span class="btn-icon">&#x2192;</span>
+              <span class="btn-title">Dukan &#x2192; Ghar</span>
+              <span class="btn-desc">Raat ko Dukan ka bacha paisa ghar aaya.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Ghar se Payment / Kharcha</div>
+          <div class="txn-buttons">
+            <button class="txn-btn out" onclick="openModal('cash_out_ghar')">
+              <span class="btn-icon">&#8600;</span>
+              <span class="btn-title">Ghar se payment / kharcha</span>
+              <span class="btn-desc">Ghar se koi bada kharcha hua ya paisa nikla.</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: LOG -->
+  <div class="page" id="page-log">
+    <div class="log-page">
+      <div class="log-header">
+        <h2>Transaction Log</h2>
+        <div class="log-btns">
+          <button onclick="exportLog()">Export CSV</button>
+          <button class="btn-clear" onclick="clearLog()">Clear Day</button>
+        </div>
+      </div>
+      <div class="log-list" id="log-list">
+        <div class="empty-log" id="empty-log">No transactions yet today.<br>Bhagwan Ki Kripa Rahegi.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end app-wrap -->
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-balances" onclick="switchTab('balances')">
+    <span class="tab-icon">&#9679;</span>
+    <span>Balances</span>
+  </button>
+  <button class="tab-btn" id="tab-txn" onclick="switchTab('txn')">
+    <span class="tab-icon">&#8645;</span>
+    <span>Transactions</span>
+  </button>
+  <button class="tab-btn" id="tab-log" onclick="switchTab('log')">
+    <span class="tab-icon">&#9776;</span>
+    <span>Log</span>
+  </button>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <h3 id="modal-title">Confirm Transaction</h3>
+    <div class="modal-amount" id="modal-amount-display">&#8377; &mdash;</div>
+    <p id="modal-desc"></p>
+    <textarea class="note-input" id="modal-note" placeholder="Note (worker name, customer name, reason...)"></textarea>
+    <div class="modal-buttons">
+      <button class="btn-cancel"  onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmTxn()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 1: DELETE/EDIT CONFIRM MODAL -->
+<div class="modal-overlay" id="txn-action-overlay" style="align-items:center;">
+  <div class="modal" style="border-radius:18px;max-width:360px;padding:24px 22px 28px;">
+    <div class="modal-drag"></div>
+    <div style="font-size:11px;letter-spacing:1.5px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;margin-bottom:10px;">Transaction Record</div>
+    <h3 id="tact-title" style="font-size:13px;color:var(--gold-light);margin-bottom:6px;line-height:1.5;"></h3>
+    <div id="tact-amount" style="font-size:26px;font-family:var(--mono);color:var(--gold-light);margin:8px 0;"></div>
+    <p id="tact-warning" style="font-size:11px;color:#d08030;background:#2a1a00;border:1px solid #7a4400;border-radius:6px;padding:9px 12px;margin-bottom:14px;line-height:1.6;font-family:var(--mono);"></p>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-cancel" style="flex:1;padding:12px;" onclick="closeTxnAction()">Wapas Jao</button>
+      <button id="tact-edit-btn"   style="flex:1;padding:12px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid var(--gold);background:var(--gold-dark);color:var(--gold-light);font-family:var(--font);" onclick="proceedToEdit()">&#9998; Edit</button>
+      <button id="tact-delete-btn" style="flex:1;padding:12px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid rgba(224,80,80,0.6);background:rgba(224,80,80,0.12);color:var(--red);font-family:var(--font);" onclick="proceedToDelete()">&#128465; Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 2A: EDIT MODAL -->
+<div class="modal-overlay" id="edit-overlay" style="align-items:flex-end;">
+  <div class="modal" style="border-radius:18px 18px 0 0;max-width:480px;">
+    <div class="modal-drag"></div>
+    <h3 style="font-size:14px;color:var(--gold-light);margin-bottom:4px;">Transaction Edit Karo</h3>
+    <p style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:12px;">Purana amount reverse ho jaayega, naya amount apply hoga.</p>
+    <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;">NAYA AMOUNT</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
+      <span style="font-size:20px;color:var(--gold);font-family:var(--mono);">&#8377;</span>
+      <div style="flex:1;position:relative;">
+        <input type="tel" inputmode="numeric" pattern="[0-9]*" class="amt-input" id="edit-amt-input" placeholder="0" oninput="onEditAmtChange(this)">
+        <div id="edit-amt-display" style="position:absolute;top:0;left:0;right:0;bottom:0;padding:12px 14px;font-size:22px;color:var(--text3);font-family:var(--mono);pointer-events:none;display:flex;align-items:center;">0</div>
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;">NOTE (optional)</div>
+    <textarea class="note-input" id="edit-note-input" placeholder="Reason for edit..."></textarea>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-cancel" style="flex:1;padding:13px;" onclick="closeEdit()">Cancel</button>
+      <button class="btn-confirm" style="flex:1;padding:13px;" onclick="confirmEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 2B: FINAL DELETE CONFIRM -->
+<div class="modal-overlay" id="delete-confirm-overlay" style="align-items:center;">
+  <div class="modal" style="border-radius:18px;max-width:320px;text-align:center;padding:28px 22px;">
+    <div style="font-size:36px;margin-bottom:10px;">&#128465;</div>
+    <h3 style="color:var(--red);margin-bottom:8px;font-size:16px;">Bilkul Sure Hai?</h3>
+    <p id="delete-confirm-msg" style="font-size:12px;color:var(--text2);margin-bottom:20px;line-height:1.7;"></p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-cancel" style="flex:1;padding:13px;" onclick="closeDeleteConfirm()">Nahi, Wapas</button>
+      <button style="flex:1;padding:13px;border-radius:8px;font-size:14px;cursor:pointer;border:1px solid rgba(224,80,80,0.6);background:rgba(224,80,80,0.15);color:var(--red);font-family:var(--font);" onclick="confirmDelete()">Haan, Delete Karo</button>
+    </div>
+  </div>
+</div>
+
+<!-- UDHAR LEDGER POPUP -->
+<div class="modal-overlay" id="udhar-ledger-overlay" style="align-items:center;">
+  <div class="modal" style="border-radius:18px;max-width:400px;padding:22px 0 28px;max-height:85vh;display:flex;flex-direction:column;border-color:rgba(192,132,252,0.6);">
+    <div style="padding:0 22px 14px;border-bottom:1px solid var(--border);">
+      <div class="modal-drag" style="margin-bottom:14px;"></div>
+      <h3 style="color:#c084fc;font-size:16px;margin-bottom:3px;">&#128221; Pending Udhar</h3>
+      <p style="font-size:10px;color:var(--text3);font-family:var(--mono);margin:0;">Jinhe paisa dena hai — abhi bhi baaki hai</p>
+    </div>
+    <div id="udhar-ledger-list" style="flex:1;overflow-y:auto;padding:6px 22px;-webkit-overflow-scrolling:touch;"></div>
+    <div style="padding:14px 22px 0;">
+      <button style="width:100%;padding:13px;border-radius:8px;font-size:14px;cursor:pointer;border:1px solid rgba(192,132,252,0.5);background:rgba(192,132,252,0.1);color:#c084fc;font-family:var(--font);" onclick="closeUdharLedger()">Theek Hai</button>
+    </div>
+  </div>
+</div>
+
+<!-- UDHAR PAYMENT MODAL -->
+<div class="modal-overlay" id="udhar-payment-overlay" style="align-items:flex-end;">
+  <div class="modal" style="border-radius:18px 18px 0 0;max-width:480px;border-color:var(--green);">
+    <div class="modal-drag"></div>
+    <h3 style="color:var(--green);margin-bottom:4px;">&#9989; Udhar Ki Payment Aayi</h3>
+    <p style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:14px;">Cash system mein aayega &bull; Udhar balance automatically update hoga.</p>
+
+    <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;">KAUN SA NAAM? (Pending list se select karo ya naam likhein)</div>
+    <div id="udhar-pending-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+    <input type="text" id="udhar-payer-name" placeholder="Naam likhein..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:15px;color:var(--text);font-family:var(--font);outline:none;margin-bottom:6px;-webkit-appearance:none;" oninput="onUdharNameInput(this)">
+    <div id="udhar-pending-hint" style="font-size:9px;color:var(--green);font-family:var(--mono);margin-bottom:12px;min-height:14px;"></div>
+
+    <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;">KITNA AMOUNT AAYA?</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+      <span style="font-size:20px;color:var(--green);font-family:var(--mono);">&#8377;</span>
+      <div style="flex:1;position:relative;">
+        <input type="tel" inputmode="numeric" pattern="[0-9]*" class="amt-input" id="udhar-pay-amt" placeholder="0" oninput="onUdharPayAmtChange(this)" style="border-color:rgba(76,175,122,0.35);">
+        <div id="udhar-pay-display" style="position:absolute;top:0;left:0;right:0;bottom:0;padding:12px 14px;font-size:22px;color:var(--text3);font-family:var(--mono);pointer-events:none;display:flex;align-items:center;">0</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn-cancel" style="flex:1;padding:13px;" onclick="closeUdharPayment()">Cancel</button>
+      <button style="flex:1;padding:13px;border-radius:8px;font-size:14px;cursor:pointer;border:1px solid var(--green);background:rgba(76,175,122,0.15);color:var(--green);font-family:var(--font);letter-spacing:0.5px;" onclick="confirmUdharPayment()">&#9989; Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ERROR POPUP -->
+<div class="modal-overlay" id="error-overlay" style="align-items:center;">
+  <div class="modal" style="border-radius:18px;max-width:320px;text-align:center;padding:30px 24px;">
+    <div style="font-size:40px;margin-bottom:10px;">&#9888;</div>
+    <h3 style="font-size:18px;color:var(--red);margin-bottom:10px;">Amount Check Kare!</h3>
+    <p id="error-msg" style="color:var(--text2);font-size:13px;margin-bottom:20px;"></p>
+    <button class="btn-confirm" style="width:100%;background:var(--red);border-color:var(--red);" onclick="closeError()">Theek Hai</button>
+  </div>
+</div>
+
+<script>
+/* ── TAB SWITCHING ── */
+function switchTab(name) {
+  ['balances','txn','log'].forEach(function(t) {
+    document.getElementById('page-'+t).classList.toggle('active', t === name);
+    document.getElementById('tab-'+t).classList.toggle('active', t === name);
+  });
+}
+
+/* ── ERROR POPUP ── */
+function showError(msg) {
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('error-overlay').classList.add('active');
+}
+function closeError() {
+  document.getElementById('error-overlay').classList.remove('active');
+}
+
+/* ── TRANSACTION DEFINITIONS ── */
+var TXN_DEFS = {
+  customer_cash_in_direct: {
+    title: 'Dukan Mein Seedha Payment',
+    desc:  'Poora amount Dukan mein aayega.',
+    flowType: 'in',
+    fn: function(amt) { return [{ from: null, to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' received at Dukan' }]; }
+  },
+  udhar_diya: {
+    title: 'Udhar Diya',
+    desc:  '⚠️ NOTE MEIN NAAM ZAROOR LIKHEIN — required!\n\nYeh Udhar record hai. Cash nahi gaya. Total mein count nahi hoga.',
+    flowType: 'udhar',
+    fn: function(amt) { return [{ from: null, to: 'udhar', amt: amt, label: 'Udhar recorded: Rs.' + numFmt(amt) }]; }
+  },
+  cash_out_to_customer: {
+    title: 'Customer ko cash diya - Dukan se',
+    desc:  'Dukan se customer ko paisa diya gaya. Yeh paisa system se BAHAR ja raha hai.',
+    flowType: 'out', from: 'dukan',
+    fn: function(amt) { return [{ from: 'dukan', to: null, amt: amt, label: 'Rs.' + numFmt(amt) + ' PAID OUT to customer from Dukan' }]; }
+  },
+  cash_out_dukan: {
+    title: 'Kharcha / Payment - Dukan se',
+    desc:  'Koi kharcha ya payment Dukan se hua. Yeh paisa system se BAHAR ja raha hai.',
+    flowType: 'out', from: 'dukan',
+    fn: function(amt) { return [{ from: 'dukan', to: null, amt: amt, label: 'Rs.' + numFmt(amt) + ' PAID OUT (expense) from Dukan' }]; }
+  },
+  dukan_to_upar: {
+    title: 'Dukan se Upar bheja',
+    desc:  'Dukan se cash upar (3rd floor) bheja gaya.',
+    flowType: 'move', from: 'dukan', to: 'upar',
+    fn: function(amt) { return [{ from: 'dukan', to: 'upar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Dukan to Upar' }]; }
+  },
+  upar_to_dukan: {
+    title: 'Upar se Dukan bulaya',
+    desc:  'Neeche (Dukan) mein zaroorat thi. Upar se paisa aaya.',
+    flowType: 'move', from: 'upar', to: 'dukan',
+    fn: function(amt) { return [{ from: 'upar', to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Dukan' }]; }
+  },
+  upar_to_pammi: {
+    title: 'Upar se Godown bheja (50L trigger)',
+    desc:  'Upar mein 50L ya usse zyada ho gaya. Ab Godown bheja.',
+    flowType: 'move', from: 'upar', to: 'pammi',
+    fn: function(amt) { return [{ from: 'upar', to: 'pammi', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Godown' }]; }
+  },
+  pammi_to_dukan: {
+    title: 'Godown se Dukan',
+    desc:  'Dukan mein bada supply chahiye tha. Godown se aaya.',
+    flowType: 'move', from: 'pammi', to: 'dukan',
+    fn: function(amt) { return [{ from: 'pammi', to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' Godown to Dukan' }]; }
+  },
+  pammi_to_ghar: {
+    title: 'Godown se Ghar (Din Khatam)',
+    desc:  'Din ke ant mein - Godown ka paisa ghar gaya.',
+    flowType: 'move', from: 'pammi', to: 'ghar',
+    fn: function(amt) { return [{ from: 'pammi', to: 'ghar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Godown to Ghar' }]; }
+  },
+  upar_to_ghar: {
+    title: 'Upar se Ghar (Din Khatam)',
+    desc:  'Raat ko - Upar ka bacha hua paisa ghar aaya.',
+    flowType: 'move', from: 'upar', to: 'ghar',
+    fn: function(amt) { return [{ from: 'upar', to: 'ghar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Ghar' }]; }
+  },
+  dukan_to_ghar: {
+    title: 'Dukan se Ghar (Din Khatam)',
+    desc:  'Raat ko - Dukan ka bacha hua paisa ghar aaya.',
+    flowType: 'move', from: 'dukan', to: 'ghar',
+    fn: function(amt) { return [{ from: 'dukan', to: 'ghar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Dukan to Ghar' }]; }
+  },
+  cash_out_ghar: {
+    title: 'Ghar se payment / kharcha',
+    desc:  'Ghar se koi bada kharcha hua. Yeh paisa system se BAHAR ja raha hai.',
+    flowType: 'out', from: 'ghar',
+    fn: function(amt) { return [{ from: 'ghar', to: null, amt: amt, label: 'Rs.' + numFmt(amt) + ' PAID OUT from Ghar' }]; }
+  }
+};
+
+/* ── STATE ── */
+var balances = { dukan:0, upar:0, pammi:0, ghar:0, udhar:0 };
+var txnLog = [];
+var udharLedger = [];
+var pendingTxnType = null;
+var STORAGE_KEY = 'ishaGold_v3';
+
+/* ── INDIAN NUMBER FORMAT ── */
+function numFmt(n) { return Math.abs(n).toLocaleString('en-IN'); }
+function shortFmt(n) {
+  if (n >= 10000000) return (n/10000000).toFixed(2) + ' Cr';
+  if (n >= 100000)   return (n/100000).toFixed(2) + ' L';
+  if (n >= 1000)     return (n/1000).toFixed(1) + 'k';
+  return numFmt(n);
+}
+
+/* ── AMOUNT INPUT WITH INDIAN COMMAS ── */
+function getRawAmt() {
+  var v = document.getElementById('amt-input').value.replace(/,/g,'');
+  return parseInt(v) || 0;
+}
+function onAmtChange(inp) {
+  var raw = inp.value.replace(/[^0-9]/g,'');
+  inp.value = raw;
+  var num = parseInt(raw) || 0;
+  var disp = document.getElementById('amt-display');
+  if (num > 0) {
+    disp.textContent = num.toLocaleString('en-IN');
+    disp.style.color = 'var(--gold-light)';
+  } else {
+    disp.textContent = '0';
+    disp.style.color = 'var(--text3)';
+  }
+}
+
+/* ── QUICK ADD ── */
+var lastQaBtn  = null;
+var lastQaTime = 0;
+function quickAdd(btn) {
+  var val = parseInt(btn.dataset.val);
+  var now = Date.now();
+  var inp = document.getElementById('amt-input');
+  var cur = getRawAmt();
+  if (lastQaBtn === btn && (now - lastQaTime) < 400) {
+    inp.value = cur + val;
+    lastQaBtn = null;
+  } else {
+    inp.value = cur + val;
+    lastQaBtn = btn;
+    lastQaTime = now;
+  }
+  onAmtChange(inp);
+  btn.classList.add('qa-active');
+  setTimeout(function(){ btn.classList.remove('qa-active'); }, 300);
+}
+
+/* ── STORAGE ── */
+function loadState() {
+  try {
+    var s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      var d = JSON.parse(s);
+      balances = d.balances || { dukan:0, upar:0, pammi:0, ghar:0, udhar:0 };
+      if (balances.udhar === undefined) balances.udhar = 0;
+      txnLog = d.txnLog || [];
+      udharLedger = d.udharLedger || [];
+    }
+  } catch(e) {}
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ balances:balances, txnLog:txnLog, udharLedger:udharLedger }));
+}
+
+/* ── UI UPDATE ── */
+function updateUI() {
+  var locs = ['dukan','upar','pammi','ghar'];
+  var locNames = { dukan:'Dukan', upar:'Upar', pammi:'Godown', ghar:'Ghar' };
+  locs.forEach(function(loc) {
+    document.getElementById('bal-'+loc).textContent = '\u20B9' + numFmt(balances[loc]);
+    document.getElementById('sub-'+loc).textContent = balances[loc] > 0 ? shortFmt(balances[loc]) : 'Empty';
+    document.getElementById('card-'+loc).classList.toggle('highlight', balances[loc] > 0);
+  });
+  var total = 0;
+  locs.forEach(function(l){ total += balances[l]; });
+  document.getElementById('total-bal').textContent = '\u20B9' + numFmt(total);
+  // Udhar card
+  document.getElementById('bal-udhar').textContent = '\u20B9' + numFmt(balances.udhar);
+  document.getElementById('sub-udhar').textContent = balances.udhar > 0 ? shortFmt(balances.udhar) + ' — Not in system total' : 'No udhar recorded';
+  renderLog();
+}
+
+function renderLog() {
+  var el    = document.getElementById('log-list');
+  var empty = document.getElementById('empty-log');
+  if (txnLog.length === 0) {
+    empty.style.display = 'block';
+    while (el.children.length > 1) el.removeChild(el.lastChild);
+    return;
+  }
+  empty.style.display = 'none';
+  while (el.children.length > 1) el.removeChild(el.lastChild);
+  var rev = txnLog.slice().reverse();
+  rev.forEach(function(txn, revIdx) {
+    var realIdx = txnLog.length - 1 - revIdx;
+    var div = document.createElement('div');
+
+    // Audit trail entries
+    if (txn.isAudit) {
+      div.className = 'log-entry audit-entry';
+      div.innerHTML =
+        '<div class="log-audit-tag">&#9998; ' + txn.auditLabel + '</div>' +
+        '<div class="log-time">' + txn.time + '</div>' +
+        '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.7;">' + txn.auditDetail + '</div>';
+      el.appendChild(div);
+      return;
+    }
+
+    div.className = 'log-entry' + (txn.deleted ? ' deleted-entry' : '');
+    var dirLabel = '', dirClass = '', amtClass = 'amt-move';
+    if (txn.flowType === 'in')    { dirLabel = '+ CASH IN - Money came into system'; dirClass = 'dir-in';    amtClass = 'amt-in';    }
+    if (txn.flowType === 'out')   { dirLabel = '- PAID OUT - Money left the system';  dirClass = 'dir-out';   amtClass = 'amt-out';   }
+    if (txn.flowType === 'move')  { dirLabel = 'Internal Move between locations';      dirClass = 'dir-move';  }
+    if (txn.flowType === 'udhar') { dirLabel = '\uD83D\uDCDD UDHAR - ' + (txn.note || 'Name not noted'); dirClass = 'dir-udhar'; amtClass = 'amt-udhar'; }
+    if (txn.deleted)              { dirLabel = '\u274C DELETED — ' + dirLabel; dirClass = 'dir-out'; }
+    var snap = txn.snap;
+    var udharLine = txn.flowType === 'udhar' ? ' | Udhar Total: \u20B9' + numFmt(snap.udhar || 0) : '';
+    var actionsHtml = '';
+    if (!txn.deleted) {
+      actionsHtml = '<div class="log-actions">' +
+        '<button class="log-action-btn edit-btn"   onclick="openTxnAction(' + realIdx + ',\'edit\')">&#9998; Edit</button>' +
+        '<button class="log-action-btn delete-btn" onclick="openTxnAction(' + realIdx + ',\'delete\')">&#128465; Delete</button>' +
+        '</div>';
+    }
+    div.innerHTML =
+      '<div class="log-time">' + txn.time + '</div>' +
+      '<div class="log-direction ' + dirClass + '">' + dirLabel + '</div>' +
+      '<div class="log-type">' + txn.typeLabel + '</div>' +
+      '<div class="log-amount ' + amtClass + (txn.deleted ? '" style="text-decoration:line-through;opacity:0.5;' : '"') + '>\u20B9' + numFmt(txn.amt) + '</div>' +
+      '<div class="log-route">' + txn.route + '</div>' +
+      (txn.note && txn.flowType !== 'udhar' ? '<div class="log-note">Note: ' + txn.note + '</div>' : '') +
+      '<div class="log-balances">After: Dukan: \u20B9' + numFmt(snap.dukan) +
+        ' | Upar: \u20B9' + numFmt(snap.upar) +
+        ' | Godown: \u20B9' + numFmt(snap.pammi) +
+        ' | Ghar: \u20B9' + numFmt(snap.ghar) + udharLine + '</div>' +
+      actionsHtml;
+    el.appendChild(div);
+  });
+}
+
+/* ── MODAL ── */
+function openModal(type) {
+  var amt = getRawAmt();
+  if (!amt || amt <= 0) {
+    var inp = document.getElementById('amt-input');
+    inp.focus(); inp.style.borderColor = 'var(--red)';
+    setTimeout(function(){ inp.style.borderColor = ''; }, 1200);
+    return;
+  }
+  var def = TXN_DEFS[type];
+
+  // ── ERROR CHECK: block if source balance is insufficient ──
+  if (def.from && def.flowType !== 'udhar' && balances[def.from] < amt) {
+    var locLabel = { dukan:'Dukan', upar:'Upar', pammi:'Godown', ghar:'Ghar' }[def.from] || def.from;
+    showError(locLabel + ' mein sirf \u20B9' + numFmt(balances[def.from]) + ' hai.\nAap \u20B9' + numFmt(amt) + ' nahi nikal sakte.\n\nRakam check karein aur dobara try karein.');
+    return;
+  }
+
+  pendingTxnType = type;
+  document.getElementById('modal-title').textContent          = def.title;
+  document.getElementById('modal-amount-display').textContent = '\u20B9' + numFmt(amt);
+  document.getElementById('modal-desc').textContent           = def.desc;
+  document.getElementById('modal-note').value = '';
+  document.getElementById('modal-note').placeholder = def.flowType === 'udhar'
+    ? '⚠️ Naam ZAROOR likhein (required)...'
+    : 'Note (worker name, customer name, reason...)';
+  document.getElementById('modal-overlay').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  pendingTxnType = null;
+}
+function confirmTxn() {
+  if (!pendingTxnType) return;
+  var amt  = getRawAmt();
+  var note = document.getElementById('modal-note').value.trim();
+  var def  = TXN_DEFS[pendingTxnType];
+
+  // Enforce naam for udhar
+  if (def.flowType === 'udhar' && !note) {
+    var noteEl = document.getElementById('modal-note');
+    noteEl.focus();
+    noteEl.style.borderColor = 'var(--red)';
+    noteEl.placeholder = 'Naam ZAROOR likhein — required!';
+    setTimeout(function(){ noteEl.style.borderColor = ''; noteEl.placeholder = 'Note (worker name, customer name, reason...)'; }, 2000);
+    return;
+  }
+
+  // Balance check
+  if (def.from && def.flowType !== 'udhar' && balances[def.from] < amt) {
+    closeModal();
+    var locLabel = { dukan:'Dukan', upar:'Upar', pammi:'Godown', ghar:'Ghar' }[def.from] || def.from;
+    showError(locLabel + ' mein sirf \u20B9' + numFmt(balances[def.from]) + ' hai. Transaction rok diya gaya.');
+    return;
+  }
+
+  // Apply balance changes
+  var moves = def.fn(amt);
+  moves.forEach(function(m) {
+    if (m.from && m.from !== 'udhar') balances[m.from] = Math.max(0, balances[m.from] - m.amt);
+    if (m.to   && m.to   !== 'udhar') balances[m.to]   = (balances[m.to] || 0) + m.amt;
+  });
+
+  // For udhar_diya: track in ledger, recalc balances.udhar
+  var routeLabel = moves.map(function(m){ return m.label; }).join(' + ');
+  if (def.flowType === 'udhar') {
+    routeLabel = 'Udhar - ' + note + ' | Rs.' + numFmt(amt);
+    var nowU = new Date();
+    var dStrU = nowU.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+    udharLedger.push({ name: note, origAmt: amt, remaining: amt, date: dStrU });
+    balances.udhar = udharLedger.reduce(function(s,u){ return s + u.remaining; }, 0);
+  }
+
+  var now  = new Date();
+  var tStr = now.toLocaleTimeString('en-IN',  { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
+  var dStr = now.toLocaleDateString('en-IN',  { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+  txnLog.push({
+    time:      tStr + ' | ' + dStr,
+    txnType:   pendingTxnType,
+    typeLabel: def.flowType === 'udhar' ? 'Udhar - ' + note : def.title,
+    flowType:  def.flowType,
+    amt:       amt,
+    route:     routeLabel,
+    note:      note,
+    snap:      { dukan:balances.dukan, upar:balances.upar, pammi:balances.pammi, ghar:balances.ghar, udhar:balances.udhar }
+  });
+  saveState();
+  closeModal();
+  document.getElementById('amt-input').value = '';
+  document.getElementById('amt-display').textContent = '0';
+  document.getElementById('amt-display').style.color = 'var(--text3)';
+  updateUI();
+}
+
+/* ── UDHAR LEDGER DATA ── */
+// udharLedger: array of { name, origAmt, remaining, date }
+// stored in state
+
+function getUdharLedger() {
+  return (typeof udharLedger !== 'undefined' ? udharLedger : []);
+}
+
+/* ── UDHAR LEDGER POPUP ── */
+function openUdharLedger() {
+  var list = document.getElementById('udhar-ledger-list');
+  list.innerHTML = '';
+  var pending = udharLedger.filter(function(u){ return u.remaining > 0; });
+  if (pending.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:30px 0;color:var(--text3);font-family:var(--mono);font-size:12px;line-height:2;">Koi pending udhar nahi hai.<br>Sab clear hai! &#127881;</div>';
+  } else {
+    pending.forEach(function(u, i) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid rgba(192,132,252,0.1);';
+      row.innerHTML =
+        '<span style="font-size:15px;color:var(--text);font-family:var(--font);">' + u.name + '</span>' +
+        '<span style="font-size:17px;font-family:var(--mono);color:#c084fc;font-weight:bold;">\u20B9' + numFmt(u.remaining) + '</span>';
+      list.appendChild(row);
+    });
+    // Total
+    var total = pending.reduce(function(s,u){ return s + u.remaining; }, 0);
+    var totalRow = document.createElement('div');
+    totalRow.style.cssText = 'margin-top:10px;padding-top:12px;border-top:2px solid rgba(192,132,252,0.3);display:flex;justify-content:space-between;align-items:center;';
+    totalRow.innerHTML =
+      '<span style="font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;">Total Pending</span>' +
+      '<span style="font-size:20px;font-family:var(--mono);color:#c084fc;font-weight:bold;">\u20B9' + numFmt(total) + '</span>';
+    list.appendChild(totalRow);
+  }
+  document.getElementById('udhar-ledger-overlay').classList.add('active');
+}
+function closeUdharLedger() {
+  document.getElementById('udhar-ledger-overlay').classList.remove('active');
+}
+
+/* ── UDHAR PAYMENT MODAL ── */
+var selectedUdharLoc = 'dukan';
+var selectedUdharIdx = -1;
+
+function openUdharPaymentModal() {
+  selectedUdharLoc = 'dukan';
+  selectedUdharIdx = -1;
+  document.getElementById('udhar-payer-name').value = '';
+  document.getElementById('udhar-pay-amt').value = '';
+  document.getElementById('udhar-pay-display').textContent = '0';
+  document.getElementById('udhar-pay-display').style.color = 'var(--text3)';
+  document.getElementById('udhar-pending-hint').textContent = '';
+  // Reset loc buttons
+  document.querySelectorAll('.udhar-loc-btn').forEach(function(b){
+    b.classList.toggle('active-loc', b.dataset.loc === 'dukan');
+  });
+  // Render pending chips
+  var chips = document.getElementById('udhar-pending-chips');
+  chips.innerHTML = '';
+  var pending = udharLedger.filter(function(u){ return u.remaining > 0; });
+  pending.forEach(function(u, i) {
+    var realIdx = udharLedger.indexOf(u);
+    var chip = document.createElement('button');
+    chip.className = 'udhar-chip';
+    chip.style.cssText = 'background:rgba(76,175,122,0.1);border-color:rgba(76,175,122,0.35);color:var(--green);';
+    chip.textContent = u.name + ' (\u20B9' + shortFmt(u.remaining) + ')';
+    chip.onclick = (function(idx, entry, el) {
+      return function() {
+        selectedUdharIdx = idx;
+        document.querySelectorAll('#udhar-pending-chips .udhar-chip').forEach(function(c){
+          c.style.cssText = 'background:rgba(76,175,122,0.1);border-color:rgba(76,175,122,0.35);color:var(--green);';
+        });
+        el.style.cssText = 'background:rgba(76,175,122,0.25);border-color:var(--green);color:var(--green);font-weight:bold;';
+        document.getElementById('udhar-payer-name').value = entry.name;
+        document.getElementById('udhar-pay-amt').value = entry.remaining;
+        onUdharPayAmtChange(document.getElementById('udhar-pay-amt'));
+        document.getElementById('udhar-pending-hint').textContent =
+          'Pending: \u20B9' + numFmt(entry.remaining) + (entry.remaining < entry.origAmt ? ' (original: \u20B9' + numFmt(entry.origAmt) + ')' : '') + ' — Auto-filled!';
+      };
+    })(realIdx, u, chip);
+    chips.appendChild(chip);
+  });
+  if (pending.length === 0) {
+    chips.innerHTML = '<span style="font-size:10px;color:var(--text3);font-family:var(--mono);">Koi pending udhar nahi hai — phir bhi naam likhein agar zaroori ho.</span>';
+  }
+  document.getElementById('udhar-payment-overlay').classList.add('active');
+}
+function closeUdharPayment() {
+  document.getElementById('udhar-payment-overlay').classList.remove('active');
+}
+function onUdharNameInput(inp) {
+  // Deselect chip if typing manually
+  if (selectedUdharIdx >= 0 && udharLedger[selectedUdharIdx] && inp.value !== udharLedger[selectedUdharIdx].name) {
+    selectedUdharIdx = -1;
+    document.querySelectorAll('#udhar-pending-chips .udhar-chip').forEach(function(c){
+      c.style.cssText = 'background:rgba(76,175,122,0.1);border-color:rgba(76,175,122,0.35);color:var(--green);';
+    });
+    document.getElementById('udhar-pending-hint').textContent = '';
+  }
+}
+function onUdharPayAmtChange(inp) {
+  var raw = inp.value.replace(/[^0-9]/g,'');
+  inp.value = raw;
+  var num = parseInt(raw) || 0;
+  var disp = document.getElementById('udhar-pay-display');
+  disp.textContent = num > 0 ? num.toLocaleString('en-IN') : '0';
+  disp.style.color = num > 0 ? 'var(--gold-light)' : 'var(--text3)';
+}
+function selectUdharLoc(btn) {
+  selectedUdharLoc = btn.dataset.loc;
+  document.querySelectorAll('.udhar-loc-btn').forEach(function(b){ b.classList.remove('active-loc'); });
+  btn.classList.add('active-loc');
+}
+function confirmUdharPayment() {
+  var name = document.getElementById('udhar-payer-name').value.trim();
+  var amt  = parseInt(document.getElementById('udhar-pay-amt').value) || 0;
+  if (!name) {
+    document.getElementById('udhar-payer-name').style.borderColor = 'var(--red)';
+    setTimeout(function(){ document.getElementById('udhar-payer-name').style.borderColor = ''; }, 1200);
+    return;
+  }
+  if (!amt || amt <= 0) {
+    document.getElementById('udhar-pay-amt').style.borderColor = 'var(--red)';
+    setTimeout(function(){ document.getElementById('udhar-pay-amt').style.borderColor = ''; }, 1200);
+    return;
+  }
+
+  // Always credit to Dukan
+  balances.dukan = (balances.dukan || 0) + amt;
+
+  // Reduce udhar balance — match by selectedUdharIdx or by name
+  var reduced = 0;
+  if (selectedUdharIdx >= 0 && udharLedger[selectedUdharIdx]) {
+    var entry = udharLedger[selectedUdharIdx];
+    var deduct = Math.min(amt, entry.remaining);
+    entry.remaining -= deduct;
+    reduced = deduct;
+  } else {
+    for (var i = 0; i < udharLedger.length; i++) {
+      if (udharLedger[i].name.toLowerCase() === name.toLowerCase() && udharLedger[i].remaining > 0) {
+        var deduct2 = Math.min(amt, udharLedger[i].remaining);
+        udharLedger[i].remaining -= deduct2;
+        reduced = deduct2;
+        break;
+      }
+    }
+  }
+
+  // Recalculate total udhar balance
+  balances.udhar = udharLedger.reduce(function(s,u){ return s + u.remaining; }, 0);
+
+  var now  = new Date();
+  var tStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
+  var dStr = now.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+  txnLog.push({
+    time:      tStr + ' | ' + dStr,
+    txnType:   '__udhar_payment__',
+    typeLabel: 'Udhar payment received from \u2014 ' + name,
+    flowType:  'in',
+    amt:       amt,
+    route:     'Udhar payment received from \u2014 ' + name + ' \u2192 Dukan | Udhar reduced by \u20B9' + numFmt(reduced),
+    note:      'Udhar payment received from \u2014 ' + name,
+    snap:      { dukan:balances.dukan, upar:balances.upar, pammi:balances.pammi, ghar:balances.ghar, udhar:balances.udhar }
+  });
+
+  saveState();
+  closeUdharPayment();
+  updateUI();
+}
+
+/* ── EDIT / DELETE ── */
+var pendingActionIdx    = null;
+var pendingActionMode   = null; // 'edit' or 'delete'
+
+function openTxnAction(idx, mode) {
+  var txn = txnLog[idx];
+  if (!txn || txn.deleted || txn.isAudit) return;
+  pendingActionIdx  = idx;
+  pendingActionMode = mode;
+  var now  = new Date();
+  var tStr = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
+  document.getElementById('tact-title').textContent =
+    'Aapne yeh transaction record ki thi:\n' + txn.time + '\n"' + txn.typeLabel + '"';
+  document.getElementById('tact-amount').textContent = '\u20B9' + numFmt(txn.amt);
+  document.getElementById('tact-warning').textContent =
+    (mode === 'delete'
+      ? '\u26A0 Delete karne se yeh transaction undo ho jaayegi aur balances change honge. Ek audit entry log mein add ki jaayegi.'
+      : '\u270F Edit karne se purana amount reverse ho jaayega aur naya amount apply hoga. Ek audit entry log mein add ki jaayegi.');
+  document.getElementById('txn-action-overlay').classList.add('active');
+}
+function closeTxnAction() {
+  document.getElementById('txn-action-overlay').classList.remove('active');
+  pendingActionIdx = null; pendingActionMode = null;
+}
+
+/* ── REVERSE a transaction's balance effect exactly ── */
+function reverseTxnBalances(txn) {
+  if (txn.txnType === '__udhar_payment__') {
+    balances.dukan = Math.max(0, (balances.dukan || 0) - txn.amt);
+    var payerName = (txn.note || '').replace('Udhar payment received from \u2014 ', '').trim();
+    for (var i = 0; i < udharLedger.length; i++) {
+      if (udharLedger[i].name.toLowerCase() === payerName.toLowerCase()) {
+        udharLedger[i].remaining = Math.min(udharLedger[i].origAmt, (udharLedger[i].remaining || 0) + txn.amt);
+        break;
+      }
+    }
+    balances.udhar = udharLedger.reduce(function(s,u){ return s + u.remaining; }, 0);
+    return;
+  }
+  if (txn.txnType === 'udhar_diya') {
+    var uname = txn.note || '';
+    for (var j = udharLedger.length - 1; j >= 0; j--) {
+      if (udharLedger[j].name.toLowerCase() === uname.toLowerCase() && udharLedger[j].origAmt === txn.amt) {
+        udharLedger.splice(j, 1);
+        break;
+      }
+    }
+    balances.udhar = udharLedger.reduce(function(s,u){ return s + u.remaining; }, 0);
+    return;
+  }
+  var def = TXN_DEFS[txn.txnType];
+  if (!def) return;
+  var moves = def.fn(txn.amt);
+  moves.forEach(function(m) {
+    if (m.to   && m.to   !== 'udhar') balances[m.to]   = Math.max(0, (balances[m.to]   || 0) - m.amt);
+    if (m.from && m.from !== 'udhar') balances[m.from] = (balances[m.from] || 0) + m.amt;
+  });
+}
+
+/* ── APPLY a transaction's balance effect ── */
+function applyTxnBalances(txnType, amt, note) {
+  if (txnType === '__udhar_payment__') {
+    balances.dukan = (balances.dukan || 0) + amt;
+    var payerName2 = (note || '').replace('Udhar payment received from \u2014 ', '').trim();
+    for (var i2 = 0; i2 < udharLedger.length; i2++) {
+      if (udharLedger[i2].name.toLowerCase() === payerName2.toLowerCase() && udharLedger[i2].remaining > 0) {
+        var ded = Math.min(amt, udharLedger[i2].remaining);
+        udharLedger[i2].remaining -= ded;
+        break;
+      }
+    }
+    balances.udhar = udharLedger.reduce(function(s,u){ return s + u.remaining; }, 0);
+    return;
+  }
+  if (txnType === 'udhar_diya') {
+    var now3 = new Date();
+    var dStr3 = now3.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+    udharLedger.push({ name: note || 'Unknown', origAmt: amt, remaining: amt, date: dStr3 });
+    balances.udhar = udharLedger.reduce(function(s,u){ return s + u.remaining; }, 0);
+    return;
+  }
+  var def2 = TXN_DEFS[txnType];
+  if (!def2) return;
+  var moves2 = def2.fn(amt);
+  moves2.forEach(function(m) {
+    if (m.from && m.from !== 'udhar') balances[m.from] = Math.max(0, (balances[m.from] || 0) - m.amt);
+    if (m.to   && m.to   !== 'udhar') balances[m.to]   = (balances[m.to]   || 0) + m.amt;
+  });
+}
+
+function nowStr() {
+  var now = new Date();
+  var t = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
+  var d = now.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+  return t + ' | ' + d;
+}
+
+/* ── PROCEED TO EDIT ── */
+function proceedToEdit() {
+  var idx = pendingActionIdx;
+  closeTxnAction();
+  var txn = txnLog[idx];
+  pendingActionIdx = idx; // restore after closeTxnAction resets it
+  document.getElementById('edit-amt-input').value = txn.amt;
+  onEditAmtChange(document.getElementById('edit-amt-input'));
+  document.getElementById('edit-note-input').value = '';
+  document.getElementById('edit-overlay').classList.add('active');
+}
+function closeEdit() {
+  document.getElementById('edit-overlay').classList.remove('active');
+}
+function onEditAmtChange(inp) {
+  var raw = inp.value.replace(/[^0-9]/g,'');
+  inp.value = raw;
+  var num = parseInt(raw) || 0;
+  var disp = document.getElementById('edit-amt-display');
+  disp.textContent = num > 0 ? num.toLocaleString('en-IN') : '0';
+  disp.style.color = num > 0 ? 'var(--gold-light)' : 'var(--text3)';
+}
+function confirmEdit() {
+  var newAmt  = parseInt(document.getElementById('edit-amt-input').value) || 0;
+  var editNote = document.getElementById('edit-note-input').value.trim();
+  if (!newAmt || newAmt <= 0) {
+    document.getElementById('edit-amt-input').style.borderColor = 'var(--red)';
+    setTimeout(function(){ document.getElementById('edit-amt-input').style.borderColor = ''; }, 1200);
+    return;
+  }
+  var idx = pendingActionIdx;
+  var txn = txnLog[idx];
+  var oldAmt = txn.amt;
+
+  // 1. Reverse the old amount's effect on balances
+  reverseTxnBalances(txn);
+
+  // 2. Apply the new amount's effect
+  applyTxnBalances(txn.txnType, newAmt, txn.note);
+
+  // 3. Update the log entry
+  var def = TXN_DEFS[txn.txnType];
+  if (def) {
+    var moves = def.fn(newAmt);
+    txn.route = moves.map(function(m){ return m.label; }).join(' + ');
+    if (def.flowType === 'udhar' && txn.note) txn.route = 'Udhar - ' + txn.note + ' | Rs.' + numFmt(newAmt);
+  } else if (txn.txnType === '__udhar_payment__') {
+    var pName = (txn.note || '').replace('Udhar payment received from \u2014 ', '').trim();
+    txn.route = 'Udhar payment received from \u2014 ' + pName + ' \u2192 Dukan | Edited: \u20B9' + numFmt(newAmt);
+  }
+  txn.amt    = newAmt;
+  txn.snap   = { dukan:balances.dukan, upar:balances.upar, pammi:balances.pammi, ghar:balances.ghar, udhar:balances.udhar };
+  txn.edited = true;
+
+  // 4. Insert audit entry
+  var auditEntry = {
+    isAudit:     true,
+    time:        nowStr(),
+    auditLabel:  'EDIT \u2014 ' + txn.typeLabel,
+    auditDetail: 'Purana amount: \u20B9' + numFmt(oldAmt) + '  \u2192  Naya amount: \u20B9' + numFmt(newAmt) +
+                 (editNote ? '\nKaran: ' + editNote : '') +
+                 '\nBalances updated: Dukan \u20B9' + numFmt(balances.dukan) +
+                 ' | Upar \u20B9' + numFmt(balances.upar) +
+                 ' | Godown \u20B9' + numFmt(balances.pammi) +
+                 ' | Ghar \u20B9' + numFmt(balances.ghar)
+  };
+  txnLog.splice(idx + 1, 0, auditEntry);
+
+  saveState(); closeEdit(); pendingActionIdx = null;
+  updateUI();
+}
+
+/* ── PROCEED TO DELETE ── */
+function proceedToDelete() {
+  var idx = pendingActionIdx;
+  closeTxnAction();
+  pendingActionIdx = idx; // restore after closeTxnAction resets it
+  var txn = txnLog[pendingActionIdx];
+  document.getElementById('delete-confirm-msg').textContent =
+    '"' + txn.typeLabel + '"\n\u20B9' + numFmt(txn.amt) + '\n' + txn.time +
+    '\n\nYeh transaction delete hogi aur balances reverse ho jaayenge.\nLog mein ek audit entry bhi rahegi.';
+  document.getElementById('delete-confirm-overlay').classList.add('active');
+}
+function closeDeleteConfirm() {
+  document.getElementById('delete-confirm-overlay').classList.remove('active');
+}
+function confirmDelete() {
+  var idx = pendingActionIdx;
+  var txn = txnLog[idx];
+
+  // Reverse balances
+  reverseTxnBalances(txn);
+  txn.deleted = true;
+
+  // Insert audit entry
+  var auditEntry = {
+    isAudit:     true,
+    time:        nowStr(),
+    auditLabel:  'DELETE — ' + txn.typeLabel,
+    auditDetail: 'Transaction DELETE ki gayi.\nAmount: \u20B9' + numFmt(txn.amt) +
+                 ' | Recorded at: ' + txn.time +
+                 '\nBalances updated: Dukan \u20B9' + numFmt(balances.dukan) +
+                 ' | Upar \u20B9' + numFmt(balances.upar) +
+                 ' | Godown \u20B9' + numFmt(balances.pammi) +
+                 ' | Ghar \u20B9' + numFmt(balances.ghar)
+  };
+  txnLog.splice(idx + 1, 0, auditEntry);
+
+  saveState(); closeDeleteConfirm(); pendingActionIdx = null;
+  updateUI();
+}
+
+/* ── CLOSE OVERLAYS ON OUTSIDE TAP ── */
+document.getElementById('txn-action-overlay').addEventListener('click',    function(e){ if(e.target===this) closeTxnAction(); });
+document.getElementById('edit-overlay').addEventListener('click',           function(e){ if(e.target===this) closeEdit(); });
+document.getElementById('delete-confirm-overlay').addEventListener('click', function(e){ if(e.target===this) closeDeleteConfirm(); });
+
+/* ── CLEAR / EXPORT ── */
+function clearLog() {
+  if (!confirm('Are you sure? All transactions and balances will be cleared for a new day.\n\nThis cannot be undone.')) return;
+  balances = { dukan:0, upar:0, pammi:0, ghar:0, udhar:0 };
+  txnLog   = [];
+  udharLedger = [];
+  saveState();
+  updateUI();
+  showBlessingModal();
+}
+
+function escapeCsv(v) {
+  if (v === null || v === undefined) return '';
+  var s = String(v);
+  if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+    return '"' + s.replace(/"/g,'""') + '"';
+  }
+  return s;
+}
+
+function exportLog() {
+  if (txnLog.length === 0) { alert('No transactions to export.'); return; }
+  var headers = [
+    'Sr No','Time (IST)','Date',
+    'Transaction Type','Cash Flow Direction',
+    'Amount (Rs.)','Amount (Short Form)',
+    'Movement Details','Note / Remark',
+    'Dukan Balance After','Upar Balance After',
+    'Godown Balance After','Ghar Balance After',
+    'Total System Balance After','Udhar Total After'
+  ];
+  var rows = txnLog.map(function(t, i) {
+    var parts = t.time.split(' | ');
+    var timePart = parts[0] ? parts[0].trim() : '';
+    var datePart = parts[1] ? parts[1].trim() : '';
+    var total = t.snap.dukan + t.snap.upar + t.snap.pammi + t.snap.ghar;
+    var flowLabel = 'Internal Move';
+    if (t.flowType === 'in')    flowLabel = 'CASH IN';
+    if (t.flowType === 'out')   flowLabel = 'PAID OUT';
+    if (t.flowType === 'udhar') flowLabel = 'UDHAR (not in total)';
+    return [
+      i+1,
+      escapeCsv(timePart), escapeCsv(datePart),
+      escapeCsv(t.typeLabel), escapeCsv(flowLabel),
+      t.amt, escapeCsv(shortFmt(t.amt)),
+      escapeCsv(t.route), escapeCsv(t.note || ''),
+      t.snap.dukan, t.snap.upar, t.snap.pammi, t.snap.ghar, total, t.snap.udhar || 0
+    ].join(',');
+  });
+  var totalIn = 0, totalOut = 0, totalUdhar = 0;
+  txnLog.forEach(function(t){
+    if (t.flowType==='in')    totalIn    += t.amt;
+    if (t.flowType==='out')   totalOut   += t.amt;
+    if (t.flowType==='udhar') totalUdhar += t.amt;
+  });
+  var finalTotal = balances.dukan + balances.upar + balances.pammi + balances.ghar;
+  var sep = ',,,,,,,,,,,,,,';
+  var summary = [
+    '',
+    '--- DAILY SUMMARY ---' + sep,
+    'Total Cash Received (IN):,' + totalIn    + ',' + escapeCsv('Rs. ' + numFmt(totalIn))    + sep,
+    'Total Cash Paid Out (OUT):,' + totalOut   + ',' + escapeCsv('Rs. ' + numFmt(totalOut))   + sep,
+    'Total Udhar Diya:,'          + totalUdhar + ',' + escapeCsv('Rs. ' + numFmt(totalUdhar)) + sep,
+    'Total Transactions:,' + txnLog.length + sep,
+    '',
+    'FINAL BALANCES:' + sep,
+    'Dukan:,'  + balances.dukan + ',' + escapeCsv('Rs. ' + numFmt(balances.dukan)) + sep,
+    'Upar:,'   + balances.upar  + ',' + escapeCsv('Rs. ' + numFmt(balances.upar))  + sep,
+    'Godown:,' + balances.pammi + ',' + escapeCsv('Rs. ' + numFmt(balances.pammi)) + sep,
+    'Ghar:,'   + balances.ghar  + ',' + escapeCsv('Rs. ' + numFmt(balances.ghar))  + sep,
+    'TOTAL SYSTEM:,' + finalTotal + ',' + escapeCsv('Rs. ' + numFmt(finalTotal)) + sep,
+    'UDHAR (not in system):,' + balances.udhar + ',' + escapeCsv('Rs. ' + numFmt(balances.udhar)) + sep
+  ];
+  var csv  = [headers.join(',')].concat(rows).concat(summary).join('\r\n');
+  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  var a    = document.createElement('a');
+  a.href   = URL.createObjectURL(blob);
+  a.download = 'IshaGold_CashLog_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+/* ── BLESSING ── */
+function showBlessingModal() {
+  setBlessingDate();
+  document.getElementById('blessing-overlay').classList.add('active');
+}
+function closeBlessingModal() {
+  document.getElementById('blessing-overlay').classList.remove('active');
+}
+function setBlessingDate() {
+  var now = new Date();
+  var d   = now.toLocaleDateString('en-IN', {
+    weekday:'long', day:'2-digit', month:'long', year:'numeric', timeZone:'Asia/Kolkata'
+  });
+  document.getElementById('blessing-date').textContent = d;
+}
+
+/* ── CLOCK ── */
+function updateClock() {
+  var now = new Date();
+  document.getElementById('hdr-time').textContent = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
+  document.getElementById('hdr-date').textContent = now.toLocaleDateString('en-IN', { weekday:'short', day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+document.getElementById('modal-overlay').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+document.getElementById('error-overlay').addEventListener('click', function(e) { if(e.target===this) closeError(); });
+document.addEventListener('keydown', function(e) { if(e.key==='Escape'){ closeModal(); closeError(); closeTxnAction(); closeEdit(); closeDeleteConfirm(); } });
+
+/* ── PREVENT DOUBLE-TAP ZOOM ON ALL BUTTONS ── */
+(function() {
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e) {
+    var now = Date.now();
+    if (now - lastTouchEnd < 200) { e.preventDefault(); }
+    lastTouchEnd = now;
+  }, { passive: false });
+})();
+
+/* ── INIT ── */
+loadState();
+updateUI();
+setBlessingDate();
+</script>
+</body>
+</html>
