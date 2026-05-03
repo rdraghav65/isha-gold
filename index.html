@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0e0e0e">
-<title>Isha Gold — Cash Tracker</title>
+<title>Isha Gold — Bank/RTGS Tracker</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   html { touch-action: manipulation; }
@@ -119,11 +119,11 @@
   .amt-input  {
     flex: 1; background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 12px 14px; font-size: 22px;
-    color: var(--gold-light); font-family: var(--mono); outline: none;
-    width: 100%; -webkit-appearance: none;
+    color: transparent; font-family: var(--mono); outline: none;
+    width: 100%; -webkit-appearance: none; caret-color: var(--gold-light);
   }
   .amt-input:focus { border-color: var(--gold); }
-  .amt-input::placeholder { color: var(--text3); font-size: 13px; }
+  .amt-input::placeholder { color: var(--text3); font-size: 13px; opacity: 0; }
 
   .quick-hint { font-size: 9px; color: var(--text3); font-family: var(--mono); margin-bottom: 6px; }
   .quick-amounts { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -157,6 +157,10 @@
   .txn-btn.in  .btn-title { color: var(--green); }
   .txn-btn.out .btn-title { color: var(--red); }
   .txn-btn.move .btn-title { color: var(--gold-light); }
+  .txn-btn.udhar .btn-title { color: #c084fc; }
+  .txn-btn.udhar { border-color: rgba(192,132,252,0.3); }
+  .dir-udhar { color: #c084fc; }
+  .amt-udhar { color: #c084fc; }
 
   /* ── PAGE: LOG ── */
   .log-page { padding: 0; }
@@ -285,7 +289,7 @@
 
 <!-- HEADER -->
 <header>
-  <h1>&#9830; Isha Gold &mdash; Cash Tracker</h1>
+  <h1>&#9830; Isha Gold &mdash; Bank/RTGS Tracker</h1>
   <div class="hdr-right">
     <span class="hdr-time" id="hdr-time"></span>
     <span class="hdr-date" id="hdr-date"></span>
@@ -313,8 +317,8 @@
           <div class="loc-sub"   id="sub-upar">Empty</div>
         </div>
         <div class="loc-card" id="card-pammi">
-          <div class="loc-tag">Transit</div>
-          <div class="loc-name">Pammi Chowk</div>
+          <div class="loc-tag">Storage</div>
+          <div class="loc-name">Godown</div>
           <div class="loc-amount" id="bal-pammi">&#8377;0</div>
           <div class="loc-sub"   id="sub-pammi">Empty</div>
         </div>
@@ -329,6 +333,14 @@
         <span>Total Cash in System</span>
         <strong id="total-bal">&#8377;0</strong>
       </div>
+      <div style="margin-top:10px;">
+        <div class="loc-card" id="card-udhar" style="border-color:rgba(192,132,252,0.35);">
+          <div class="loc-tag" style="color:#a855f7;">Udhar Ledger</div>
+          <div class="loc-name" style="color:#c084fc;font-size:15px;">Total Udhar Diya</div>
+          <div class="loc-amount" id="bal-udhar" style="color:#c084fc;">&#8377;0</div>
+          <div class="loc-sub"   id="sub-udhar" style="color:#7c3aed;">Not counted in system total</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -339,7 +351,10 @@
       <div class="warn-banner" id="warn-banner">&#9888; Warning: Balance at source is lower than entered amount. Please verify!</div>
       <div class="amount-row">
         <span class="amt-label">&#8377;</span>
-        <input type="number" inputmode="numeric" pattern="[0-9]*" class="amt-input" id="amt-input" placeholder="e.g. 1525000" min="0" step="1000" oninput="onAmtChange()">
+        <div style="flex:1;position:relative;">
+          <input type="tel" inputmode="numeric" pattern="[0-9]*" class="amt-input" id="amt-input" placeholder="0" oninput="onAmtChange(this)">
+          <div id="amt-display" style="position:absolute;top:0;left:0;right:0;bottom:0;padding:12px 14px;font-size:22px;color:var(--gold-light);font-family:var(--mono);pointer-events:none;display:flex;align-items:center;"></div>
+        </div>
       </div>
       <div class="quick-hint">Quick buttons &mdash; tap once to add, tap again to double:</div>
       <div class="quick-amounts">
@@ -362,15 +377,21 @@
         <div class="txn-group">
           <div class="txn-group-label">Customer se Paisa Aaya &mdash; Cash IN</div>
           <div class="txn-buttons">
-            <button class="txn-btn in" onclick="openModal('customer_cash_in')">
+            <button class="txn-btn in" onclick="openModal('customer_cash_in_direct')" style="grid-column:1/-1;">
               <span class="btn-icon">&#8599;</span>
-              <span class="btn-title">Customer ne bada amount diya</span>
-              <span class="btn-desc">Round lakhs Upar, baaki change Dukan.</span>
+              <span class="btn-title">Dukan Mein Seedha Payment</span>
+              <span class="btn-desc">Poora amount Dukan mein aayega.</span>
             </button>
-            <button class="txn-btn in" onclick="openModal('customer_cash_in_direct')">
-              <span class="btn-icon">&#8599;</span>
-              <span class="btn-title">Chota payment &mdash; seedha Dukan</span>
-              <span class="btn-desc">Poora amount Dukan mein hi rahega.</span>
+          </div>
+        </div>
+
+        <div class="txn-group">
+          <div class="txn-group-label">Udhar &mdash; Credit Note</div>
+          <div class="txn-buttons">
+            <button class="txn-btn udhar" onclick="openModal('udhar_diya')" style="grid-column:1/-1;">
+              <span class="btn-icon">&#128221;</span>
+              <span class="btn-title">Udhar Diya (Name likhein note mein)</span>
+              <span class="btn-desc">Cash nahi gaya — sirf udhar record hoga. Total mein count nahi hoga.</span>
             </button>
           </div>
         </div>
@@ -408,27 +429,27 @@
         </div>
 
         <div class="txn-group">
-          <div class="txn-group-label">Upar se Pammi Chowk &mdash; 50L ho gaya</div>
+          <div class="txn-group-label">Upar se Godown &mdash; 50L ho gaya</div>
           <div class="txn-buttons">
             <button class="txn-btn move" onclick="openModal('upar_to_pammi')">
               <span class="btn-icon">&#x2192;</span>
-              <span class="btn-title">Upar &#x2192; Pammi Chowk</span>
-              <span class="btn-desc">50L ya multiple Upar mein. Ab Pammi Chowk.</span>
+              <span class="btn-title">Upar &#x2192; Godown</span>
+              <span class="btn-desc">50L ya multiple Upar mein. Ab Godown.</span>
             </button>
           </div>
         </div>
 
         <div class="txn-group">
-          <div class="txn-group-label">Pammi Chowk &mdash; Movements</div>
+          <div class="txn-group-label">Godown &mdash; Movements</div>
           <div class="txn-buttons">
             <button class="txn-btn move" onclick="openModal('pammi_to_dukan')">
               <span class="btn-icon">&#8599;</span>
-              <span class="btn-title">Pammi Chowk &#x2192; Dukan</span>
+              <span class="btn-title">Godown &#x2192; Dukan</span>
               <span class="btn-desc">Dukan mein bada cash chahiye tha.</span>
             </button>
             <button class="txn-btn move" onclick="openModal('pammi_to_ghar')">
               <span class="btn-icon">&#x2192;</span>
-              <span class="btn-title">Pammi Chowk &#x2192; Ghar</span>
+              <span class="btn-title">Godown &#x2192; Ghar</span>
               <span class="btn-desc">Din ke ant mein &mdash; paisa ghar gaya.</span>
             </button>
           </div>
@@ -515,6 +536,16 @@
   </div>
 </div>
 
+<!-- ERROR POPUP -->
+<div class="modal-overlay" id="error-overlay" style="align-items:center;">
+  <div class="modal" style="border-radius:18px;max-width:320px;text-align:center;padding:30px 24px;">
+    <div style="font-size:40px;margin-bottom:10px;">&#9888;</div>
+    <h3 style="font-size:18px;color:var(--red);margin-bottom:10px;">Amount Check Kare!</h3>
+    <p id="error-msg" style="color:var(--text2);font-size:13px;margin-bottom:20px;"></p>
+    <button class="btn-confirm" style="width:100%;background:var(--red);border-color:var(--red);" onclick="closeError()">Theek Hai</button>
+  </div>
+</div>
+
 <script>
 /* ── TAB SWITCHING ── */
 function switchTab(name) {
@@ -524,27 +555,28 @@ function switchTab(name) {
   });
 }
 
+/* ── ERROR POPUP ── */
+function showError(msg) {
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('error-overlay').classList.add('active');
+}
+function closeError() {
+  document.getElementById('error-overlay').classList.remove('active');
+}
+
 /* ── TRANSACTION DEFINITIONS ── */
-const TXN_DEFS = {
-  customer_cash_in: {
-    title: 'Customer ne bada amount diya (Dukan + Upar split)',
-    desc:  'Round lakhs Upar mein jaayenge (locked). Baaki change Dukan mein rahega.',
-    flowType: 'in',
-    fn: function(amt) {
-      var lakhs  = Math.floor(amt / 100000) * 100000;
-      var change = amt - lakhs;
-      var moves  = [];
-      if (lakhs  > 0) moves.push({ from: null, to: 'upar',  amt: lakhs,  label: 'Round figure Rs.' + numFmt(lakhs) + ' to Upar' });
-      if (change > 0) moves.push({ from: null, to: 'dukan', amt: change, label: 'Change Rs.' + numFmt(change) + ' to Dukan' });
-      if (lakhs === 0) moves.push({ from: null, to: 'dukan', amt: amt, label: 'Full amount Rs.' + numFmt(amt) + ' to Dukan' });
-      return moves;
-    }
-  },
+var TXN_DEFS = {
   customer_cash_in_direct: {
-    title: 'Chota payment - seedha Dukan mein',
-    desc:  'Poora amount Dukan mein hi aayega.',
+    title: 'Dukan Mein Seedha Payment',
+    desc:  'Poora amount Dukan mein aayega.',
     flowType: 'in',
     fn: function(amt) { return [{ from: null, to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' received at Dukan' }]; }
+  },
+  udhar_diya: {
+    title: 'Udhar Diya',
+    desc:  'Yeh Udhar record hai. Cash nahi gaya. Total mein count nahi hoga.\n\nNote mein naam zaroor likhein.',
+    flowType: 'udhar',
+    fn: function(amt) { return [{ from: null, to: 'udhar', amt: amt, label: 'Udhar recorded: Rs.' + numFmt(amt) }]; }
   },
   cash_out_to_customer: {
     title: 'Customer ko cash diya - Dukan se',
@@ -571,22 +603,22 @@ const TXN_DEFS = {
     fn: function(amt) { return [{ from: 'upar', to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Dukan' }]; }
   },
   upar_to_pammi: {
-    title: 'Upar se Pammi Chowk bheja (50L trigger)',
-    desc:  'Upar mein 50L ya usse zyada ho gaya. Ab Pammi Chowk bheja.',
+    title: 'Upar se Godown bheja (50L trigger)',
+    desc:  'Upar mein 50L ya usse zyada ho gaya. Ab Godown bheja.',
     flowType: 'move', from: 'upar', to: 'pammi',
-    fn: function(amt) { return [{ from: 'upar', to: 'pammi', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Pammi Chowk' }]; }
+    fn: function(amt) { return [{ from: 'upar', to: 'pammi', amt: amt, label: 'Rs.' + numFmt(amt) + ' Upar to Godown' }]; }
   },
   pammi_to_dukan: {
-    title: 'Pammi Chowk se Dukan',
-    desc:  'Dukan mein bada supply chahiye tha. Pammi Chowk se aaya.',
+    title: 'Godown se Dukan',
+    desc:  'Dukan mein bada supply chahiye tha. Godown se aaya.',
     flowType: 'move', from: 'pammi', to: 'dukan',
-    fn: function(amt) { return [{ from: 'pammi', to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' Pammi Chowk to Dukan' }]; }
+    fn: function(amt) { return [{ from: 'pammi', to: 'dukan', amt: amt, label: 'Rs.' + numFmt(amt) + ' Godown to Dukan' }]; }
   },
   pammi_to_ghar: {
-    title: 'Pammi Chowk se Ghar (Din Khatam)',
-    desc:  'Din ke ant mein - Pammi Chowk ka paisa ghar gaya.',
+    title: 'Godown se Ghar (Din Khatam)',
+    desc:  'Din ke ant mein - Godown ka paisa ghar gaya.',
     flowType: 'move', from: 'pammi', to: 'ghar',
-    fn: function(amt) { return [{ from: 'pammi', to: 'ghar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Pammi Chowk to Ghar' }]; }
+    fn: function(amt) { return [{ from: 'pammi', to: 'ghar', amt: amt, label: 'Rs.' + numFmt(amt) + ' Godown to Ghar' }]; }
   },
   upar_to_ghar: {
     title: 'Upar se Ghar (Din Khatam)',
@@ -609,10 +641,38 @@ const TXN_DEFS = {
 };
 
 /* ── STATE ── */
-var balances = { dukan:0, upar:0, pammi:0, ghar:0 };
+var balances = { dukan:0, upar:0, pammi:0, ghar:0, udhar:0 };
 var txnLog = [];
 var pendingTxnType = null;
-var STORAGE_KEY = 'ishaGold_v2';
+var STORAGE_KEY = 'ishaGold_v3';
+
+/* ── INDIAN NUMBER FORMAT ── */
+function numFmt(n) { return Math.abs(n).toLocaleString('en-IN'); }
+function shortFmt(n) {
+  if (n >= 10000000) return (n/10000000).toFixed(2) + ' Cr';
+  if (n >= 100000)   return (n/100000).toFixed(2) + ' L';
+  if (n >= 1000)     return (n/1000).toFixed(1) + 'k';
+  return numFmt(n);
+}
+
+/* ── AMOUNT INPUT WITH INDIAN COMMAS ── */
+function getRawAmt() {
+  var v = document.getElementById('amt-input').value.replace(/,/g,'');
+  return parseInt(v) || 0;
+}
+function onAmtChange(inp) {
+  var raw = inp.value.replace(/[^0-9]/g,'');
+  inp.value = raw;
+  var num = parseInt(raw) || 0;
+  var disp = document.getElementById('amt-display');
+  if (num > 0) {
+    disp.textContent = num.toLocaleString('en-IN');
+    disp.style.color = 'var(--gold-light)';
+  } else {
+    disp.textContent = '0';
+    disp.style.color = 'var(--text3)';
+  }
+}
 
 /* ── QUICK ADD ── */
 var lastQaBtn  = null;
@@ -621,34 +681,30 @@ function quickAdd(btn) {
   var val = parseInt(btn.dataset.val);
   var now = Date.now();
   var inp = document.getElementById('amt-input');
-  var cur = parseInt(inp.value) || 0;
+  var cur = getRawAmt();
   if (lastQaBtn === btn && (now - lastQaTime) < 400) {
-    inp.value  = cur + val;
-    lastQaBtn  = null;
+    inp.value = cur + val;
+    lastQaBtn = null;
   } else {
-    inp.value  = cur + val;
-    lastQaBtn  = btn;
+    inp.value = cur + val;
+    lastQaBtn = btn;
     lastQaTime = now;
   }
-  onAmtChange();
+  onAmtChange(inp);
   btn.classList.add('qa-active');
   setTimeout(function(){ btn.classList.remove('qa-active'); }, 300);
-}
-
-/* ── FORMAT ── */
-function numFmt(n) { return n.toLocaleString('en-IN'); }
-function shortFmt(n) {
-  if (n >= 10000000) return (n/10000000).toFixed(2) + ' Cr';
-  if (n >= 100000)   return (n/100000).toFixed(2) + ' L';
-  if (n >= 1000)     return (n/1000).toFixed(1) + 'k';
-  return numFmt(n);
 }
 
 /* ── STORAGE ── */
 function loadState() {
   try {
     var s = localStorage.getItem(STORAGE_KEY);
-    if (s) { var d = JSON.parse(s); balances = d.balances||{dukan:0,upar:0,pammi:0,ghar:0}; txnLog = d.txnLog||[]; }
+    if (s) {
+      var d = JSON.parse(s);
+      balances = d.balances || { dukan:0, upar:0, pammi:0, ghar:0, udhar:0 };
+      if (balances.udhar === undefined) balances.udhar = 0;
+      txnLog = d.txnLog || [];
+    }
   } catch(e) {}
 }
 function saveState() {
@@ -658,6 +714,7 @@ function saveState() {
 /* ── UI UPDATE ── */
 function updateUI() {
   var locs = ['dukan','upar','pammi','ghar'];
+  var locNames = { dukan:'Dukan', upar:'Upar', pammi:'Godown', ghar:'Ghar' };
   locs.forEach(function(loc) {
     document.getElementById('bal-'+loc).textContent = '\u20B9' + numFmt(balances[loc]);
     document.getElementById('sub-'+loc).textContent = balances[loc] > 0 ? shortFmt(balances[loc]) : 'Empty';
@@ -666,6 +723,9 @@ function updateUI() {
   var total = 0;
   locs.forEach(function(l){ total += balances[l]; });
   document.getElementById('total-bal').textContent = '\u20B9' + numFmt(total);
+  // Udhar card
+  document.getElementById('bal-udhar').textContent = '\u20B9' + numFmt(balances.udhar);
+  document.getElementById('sub-udhar').textContent = balances.udhar > 0 ? shortFmt(balances.udhar) + ' — Not in system total' : 'No udhar recorded';
   renderLog();
 }
 
@@ -684,57 +744,49 @@ function renderLog() {
     var div = document.createElement('div');
     div.className = 'log-entry';
     var dirLabel = '', dirClass = '', amtClass = 'amt-move';
-    if (txn.flowType === 'in')  { dirLabel = '+ CASH IN - Money came into system';  dirClass = 'dir-in';  amtClass = 'amt-in';  }
-    if (txn.flowType === 'out') { dirLabel = '- PAID OUT - Money left the system';   dirClass = 'dir-out'; amtClass = 'amt-out'; }
-    if (txn.flowType === 'move'){ dirLabel = 'Internal Move between locations';       dirClass = 'dir-move'; }
+    if (txn.flowType === 'in')    { dirLabel = '+ CASH IN - Money came into system'; dirClass = 'dir-in';    amtClass = 'amt-in';    }
+    if (txn.flowType === 'out')   { dirLabel = '- PAID OUT - Money left the system';  dirClass = 'dir-out';   amtClass = 'amt-out';   }
+    if (txn.flowType === 'move')  { dirLabel = 'Internal Move between locations';      dirClass = 'dir-move';  }
+    if (txn.flowType === 'udhar') { dirLabel = '\uD83D\uDCDD UDHAR - ' + (txn.note || 'Name not noted'); dirClass = 'dir-udhar'; amtClass = 'amt-udhar'; }
     var snap = txn.snap;
+    var udharLine = txn.flowType === 'udhar' ? ' | Udhar Total: \u20B9' + numFmt(snap.udhar || 0) : '';
     div.innerHTML =
       '<div class="log-time">' + txn.time + '</div>' +
       '<div class="log-direction ' + dirClass + '">' + dirLabel + '</div>' +
       '<div class="log-type">' + txn.typeLabel + '</div>' +
       '<div class="log-amount ' + amtClass + '">\u20B9' + numFmt(txn.amt) + '</div>' +
       '<div class="log-route">' + txn.route + '</div>' +
-      (txn.note ? '<div class="log-note">Note: ' + txn.note + '</div>' : '') +
-      '<div class="log-balances">After:&nbsp; Dukan: \u20B9' + numFmt(snap.dukan) +
+      (txn.note && txn.flowType !== 'udhar' ? '<div class="log-note">Note: ' + txn.note + '</div>' : '') +
+      '<div class="log-balances">After: Dukan: \u20B9' + numFmt(snap.dukan) +
         ' | Upar: \u20B9' + numFmt(snap.upar) +
-        ' | Pammi: \u20B9' + numFmt(snap.pammi) +
-        ' | Ghar: \u20B9' + numFmt(snap.ghar) + '</div>';
+        ' | Godown: \u20B9' + numFmt(snap.pammi) +
+        ' | Ghar: \u20B9' + numFmt(snap.ghar) + udharLine + '</div>';
     el.appendChild(div);
   });
 }
 
-/* ── AMOUNT HELPER ── */
-function onAmtChange() {
-  document.getElementById('warn-banner').classList.remove('visible');
-}
-
 /* ── MODAL ── */
 function openModal(type) {
-  var raw = document.getElementById('amt-input').value;
-  var amt = parseInt(raw);
-  if (!raw || isNaN(amt) || amt <= 0) {
+  var amt = getRawAmt();
+  if (!amt || amt <= 0) {
     var inp = document.getElementById('amt-input');
     inp.focus(); inp.style.borderColor = 'var(--red)';
     setTimeout(function(){ inp.style.borderColor = ''; }, 1200);
-    // Switch to txn tab if not already there
-    switchTab('txn');
     return;
   }
   var def = TXN_DEFS[type];
+
+  // ── ERROR CHECK: block if source balance is insufficient ──
+  if (def.from && def.flowType !== 'udhar' && balances[def.from] < amt) {
+    var locLabel = { dukan:'Dukan', upar:'Upar', pammi:'Godown', ghar:'Ghar' }[def.from] || def.from;
+    showError(locLabel + ' mein sirf \u20B9' + numFmt(balances[def.from]) + ' hai.\nAap \u20B9' + numFmt(amt) + ' nahi nikal sakte.\n\nRakam check karein aur dobara try karein.');
+    return;
+  }
+
   pendingTxnType = type;
   document.getElementById('modal-title').textContent          = def.title;
   document.getElementById('modal-amount-display').textContent = '\u20B9' + numFmt(amt);
-  var descExtra = def.desc;
-  if (type === 'customer_cash_in') {
-    var lakhs  = Math.floor(amt / 100000) * 100000;
-    var change = amt - lakhs;
-    if (lakhs > 0) descExtra += '\n\nUpar jaayega: \u20B9' + numFmt(lakhs) + '\nDukan mein rahega: \u20B9' + numFmt(change);
-  }
-  if (def.from && balances[def.from] < amt) {
-    var loc = def.from.charAt(0).toUpperCase() + def.from.slice(1);
-    descExtra += '\n\n! Warning: ' + loc + ' has only \u20B9' + numFmt(balances[def.from]) + '. Please verify!';
-  }
-  document.getElementById('modal-desc').textContent = descExtra;
+  document.getElementById('modal-desc').textContent           = def.desc;
   document.getElementById('modal-note').value = '';
   document.getElementById('modal-overlay').classList.add('active');
 }
@@ -744,36 +796,54 @@ function closeModal() {
 }
 function confirmTxn() {
   if (!pendingTxnType) return;
-  var amt  = parseInt(document.getElementById('amt-input').value);
+  var amt  = getRawAmt();
   var note = document.getElementById('modal-note').value.trim();
   var def  = TXN_DEFS[pendingTxnType];
-  var moves = def.fn(amt, balances);
+
+  // Extra safety check on confirm too
+  if (def.from && def.flowType !== 'udhar' && balances[def.from] < amt) {
+    closeModal();
+    var locLabel = { dukan:'Dukan', upar:'Upar', pammi:'Godown', ghar:'Ghar' }[def.from] || def.from;
+    showError(locLabel + ' mein sirf \u20B9' + numFmt(balances[def.from]) + ' hai. Transaction rok diya gaya.');
+    return;
+  }
+
+  var moves = def.fn(amt);
   moves.forEach(function(m) {
-    if (m.from) balances[m.from] = Math.max(0, balances[m.from] - m.amt);
-    if (m.to)   balances[m.to]   = balances[m.to] + m.amt;
+    if (m.from && m.from !== 'udhar') balances[m.from] = Math.max(0, balances[m.from] - m.amt);
+    if (m.to)   balances[m.to] = (balances[m.to] || 0) + m.amt;
   });
+
+  // For udhar, embed name in label
+  var routeLabel = moves.map(function(m){ return m.label; }).join(' + ');
+  if (def.flowType === 'udhar' && note) {
+    routeLabel = 'Udhar - ' + note + ' | Rs.' + numFmt(amt);
+  }
+
   var now  = new Date();
   var tStr = now.toLocaleTimeString('en-IN',  { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
   var dStr = now.toLocaleDateString('en-IN',  { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
   txnLog.push({
     time:      tStr + ' | ' + dStr,
-    typeLabel: def.title,
+    typeLabel: def.flowType === 'udhar' && note ? 'Udhar - ' + note : def.title,
     flowType:  def.flowType,
     amt:       amt,
-    route:     moves.map(function(m){ return m.label; }).join(' + '),
+    route:     routeLabel,
     note:      note,
-    snap:      { dukan:balances.dukan, upar:balances.upar, pammi:balances.pammi, ghar:balances.ghar }
+    snap:      { dukan:balances.dukan, upar:balances.upar, pammi:balances.pammi, ghar:balances.ghar, udhar:balances.udhar }
   });
   saveState();
   closeModal();
   document.getElementById('amt-input').value = '';
+  document.getElementById('amt-display').textContent = '0';
+  document.getElementById('amt-display').style.color = 'var(--text3)';
   updateUI();
 }
 
 /* ── CLEAR / EXPORT ── */
 function clearLog() {
   if (!confirm('Are you sure? All transactions and balances will be cleared for a new day.\n\nThis cannot be undone.')) return;
-  balances = { dukan:0, upar:0, pammi:0, ghar:0 };
+  balances = { dukan:0, upar:0, pammi:0, ghar:0, udhar:0 };
   txnLog   = [];
   saveState();
   updateUI();
@@ -792,48 +862,55 @@ function escapeCsv(v) {
 function exportLog() {
   if (txnLog.length === 0) { alert('No transactions to export.'); return; }
   var headers = [
-    'Sr No', 'Time (IST)', 'Date',
-    'Transaction Type', 'Cash Flow Direction',
-    'Amount (Rs.)', 'Amount (Short Form)',
-    'Movement Details', 'Note / Remark',
-    'Dukan Balance After (Rs.)', 'Upar Balance After (Rs.)',
-    'Pammi Chowk Balance After (Rs.)', 'Ghar Balance After (Rs.)',
-    'Total System Balance After (Rs.)'
+    'Sr No','Time (IST)','Date',
+    'Transaction Type','Cash Flow Direction',
+    'Amount (Rs.)','Amount (Short Form)',
+    'Movement Details','Note / Remark',
+    'Dukan Balance After','Upar Balance After',
+    'Godown Balance After','Ghar Balance After',
+    'Total System Balance After','Udhar Total After'
   ];
   var rows = txnLog.map(function(t, i) {
     var parts = t.time.split(' | ');
     var timePart = parts[0] ? parts[0].trim() : '';
     var datePart = parts[1] ? parts[1].trim() : '';
     var total = t.snap.dukan + t.snap.upar + t.snap.pammi + t.snap.ghar;
-    var flowLabel = 'Internal Move (No change in total)';
-    if (t.flowType === 'in')  flowLabel = 'CASH IN - Received into system';
-    if (t.flowType === 'out') flowLabel = 'PAID OUT - Left the system';
+    var flowLabel = 'Internal Move';
+    if (t.flowType === 'in')    flowLabel = 'CASH IN';
+    if (t.flowType === 'out')   flowLabel = 'PAID OUT';
+    if (t.flowType === 'udhar') flowLabel = 'UDHAR (not in total)';
     return [
       i+1,
       escapeCsv(timePart), escapeCsv(datePart),
       escapeCsv(t.typeLabel), escapeCsv(flowLabel),
       t.amt, escapeCsv(shortFmt(t.amt)),
       escapeCsv(t.route), escapeCsv(t.note || ''),
-      t.snap.dukan, t.snap.upar, t.snap.pammi, t.snap.ghar, total
+      t.snap.dukan, t.snap.upar, t.snap.pammi, t.snap.ghar, total, t.snap.udhar || 0
     ].join(',');
   });
-  var totalIn  = 0, totalOut = 0;
-  txnLog.forEach(function(t){ if (t.flowType==='in') totalIn+=t.amt; if(t.flowType==='out') totalOut+=t.amt; });
+  var totalIn = 0, totalOut = 0, totalUdhar = 0;
+  txnLog.forEach(function(t){
+    if (t.flowType==='in')    totalIn    += t.amt;
+    if (t.flowType==='out')   totalOut   += t.amt;
+    if (t.flowType==='udhar') totalUdhar += t.amt;
+  });
   var finalTotal = balances.dukan + balances.upar + balances.pammi + balances.ghar;
-  var sep   = ',,,,,,,,,,,,,';
+  var sep = ',,,,,,,,,,,,,,';
   var summary = [
     '',
     '--- DAILY SUMMARY ---' + sep,
-    'Total Cash Received (CASH IN):,' + totalIn   + ',' + escapeCsv('Rs. ' + numFmt(totalIn))   + sep,
-    'Total Cash Paid Out (PAID OUT):,' + totalOut  + ',' + escapeCsv('Rs. ' + numFmt(totalOut))  + sep,
+    'Total Cash Received (IN):,' + totalIn    + ',' + escapeCsv('Rs. ' + numFmt(totalIn))    + sep,
+    'Total Cash Paid Out (OUT):,' + totalOut   + ',' + escapeCsv('Rs. ' + numFmt(totalOut))   + sep,
+    'Total Udhar Diya:,'          + totalUdhar + ',' + escapeCsv('Rs. ' + numFmt(totalUdhar)) + sep,
     'Total Transactions:,' + txnLog.length + sep,
     '',
     'FINAL BALANCES:' + sep,
-    'Dukan:,' + balances.dukan + ',' + escapeCsv('Rs. ' + numFmt(balances.dukan)) + sep,
-    'Upar:,'  + balances.upar  + ',' + escapeCsv('Rs. ' + numFmt(balances.upar))  + sep,
-    'Pammi Chowk:,' + balances.pammi + ',' + escapeCsv('Rs. ' + numFmt(balances.pammi)) + sep,
-    'Ghar:,'  + balances.ghar  + ',' + escapeCsv('Rs. ' + numFmt(balances.ghar))  + sep,
-    'TOTAL SYSTEM:,' + finalTotal + ',' + escapeCsv('Rs. ' + numFmt(finalTotal)) + sep
+    'Dukan:,'  + balances.dukan + ',' + escapeCsv('Rs. ' + numFmt(balances.dukan)) + sep,
+    'Upar:,'   + balances.upar  + ',' + escapeCsv('Rs. ' + numFmt(balances.upar))  + sep,
+    'Godown:,' + balances.pammi + ',' + escapeCsv('Rs. ' + numFmt(balances.pammi)) + sep,
+    'Ghar:,'   + balances.ghar  + ',' + escapeCsv('Rs. ' + numFmt(balances.ghar))  + sep,
+    'TOTAL SYSTEM:,' + finalTotal + ',' + escapeCsv('Rs. ' + numFmt(finalTotal)) + sep,
+    'UDHAR (not in system):,' + balances.udhar + ',' + escapeCsv('Rs. ' + numFmt(balances.udhar)) + sep
   ];
   var csv  = [headers.join(',')].concat(rows).concat(summary).join('\r\n');
   var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -869,7 +946,8 @@ setInterval(updateClock, 1000);
 updateClock();
 
 document.getElementById('modal-overlay').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
-document.addEventListener('keydown', function(e) { if(e.key==='Escape') closeModal(); });
+document.getElementById('error-overlay').addEventListener('click', function(e) { if(e.target===this) closeError(); });
+document.addEventListener('keydown', function(e) { if(e.key==='Escape'){ closeModal(); closeError(); } });
 
 /* ── PREVENT DOUBLE-TAP ZOOM ON ALL BUTTONS ── */
 (function() {
